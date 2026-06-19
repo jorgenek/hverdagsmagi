@@ -1,0 +1,2331 @@
+<!doctype html>
+<html lang="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <title>Hverdagsmagi ✨</title>
+    <link rel="manifest" href="./manifest.json" />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --surface2: #273449;
+        --border: #334155;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+        --blue: #3b82f6;
+        --green: #22c55e;
+        --red: #ef4444;
+        --yellow: #facc15;
+        --purple: #a855f7;
+        --radius: 16px;
+        --radius-sm: 10px;
+        --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+        --transition: 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+      }
+
+      #app {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Views */
+      .view {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        transition:
+          transform var(--transition),
+          opacity var(--transition);
+        overflow: hidden;
+      }
+      .view.hidden {
+        pointer-events: none;
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      .view.slide-left {
+        transform: translateX(-30%);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* Header */
+      .header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        padding-top: max(16px, env(safe-area-inset-top));
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .header h1 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        flex: 1;
+      }
+      .back-btn {
+        background: var(--surface2);
+        border: none;
+        color: var(--text);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        cursor: pointer;
+      }
+      .header-action {
+        background: var(--blue);
+        border: none;
+        color: white;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        cursor: pointer;
+      }
+
+      /* Scroll */
+      .scroll {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 16px;
+        padding-bottom: max(100px, calc(80px + env(safe-area-inset-bottom)));
+      }
+
+      /* Bottom nav */
+      .bottom-nav {
+        display: flex;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+        padding-bottom: max(0px, env(safe-area-inset-bottom));
+      }
+      .nav-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        padding: 10px 4px 8px;
+        border: none;
+        background: none;
+        color: var(--muted);
+        font-size: 0.7rem;
+        cursor: pointer;
+        transition: color var(--transition);
+      }
+      .nav-btn.active {
+        color: var(--blue);
+      }
+      .nav-btn .nav-icon {
+        font-size: 1.5rem;
+      }
+
+      /* Section label */
+      .section-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        margin: 16px 0 8px;
+      }
+      .section-label:first-child {
+        margin-top: 0;
+      }
+
+      /* Cards */
+      .card {
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        padding: 14px;
+        margin-bottom: 8px;
+      }
+
+      /* Loading */
+      .loading-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 40px;
+        color: var(--muted);
+      }
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border);
+        border-top-color: var(--blue);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .empty-state {
+        text-align: center;
+        padding: 32px 16px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .empty-icon {
+        font-size: 2.5rem;
+        margin-bottom: 8px;
+      }
+
+      /* ── HOME ── */
+      #view-home .header {
+        background: transparent;
+        border: none;
+      }
+      #view-home .header h1 {
+        font-size: 1.5rem;
+        text-align: left;
+      }
+      .home-date {
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-top: 1px;
+      }
+
+      .today-dinner {
+        background: var(--surface);
+        border-radius: var(--radius);
+        padding: 18px;
+        border: 1px solid var(--border);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+      }
+      .today-dinner-emoji {
+        font-size: 2.2rem;
+      }
+      .today-dinner-label {
+        font-size: 0.72rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        font-weight: 700;
+      }
+      .today-dinner-meal {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-top: 3px;
+      }
+      .today-dinner-arrow {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 1.2rem;
+      }
+
+      .message-preview {
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--blue);
+        padding: 12px 14px;
+        margin-bottom: 8px;
+        cursor: pointer;
+      }
+      .message-preview-text {
+        font-size: 0.9rem;
+        line-height: 1.4;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .message-preview-meta {
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      .shopping-preview {
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+      .shopping-count {
+        font-size: 0.9rem;
+      }
+      .shopping-count strong {
+        color: var(--text);
+      }
+
+      /* ── MIDDAGER ── */
+      .week-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .week-nav-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+      }
+      .week-nav-btn {
+        background: var(--surface2);
+        border: none;
+        color: var(--text);
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        font-size: 1.1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .dinner-row {
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        padding: 14px 16px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        transition: border-color var(--transition);
+      }
+      .dinner-row.today {
+        border-color: var(--blue);
+      }
+      .dinner-row:active {
+        opacity: 0.8;
+      }
+      .dinner-day {
+        width: 48px;
+        flex-shrink: 0;
+      }
+      .dinner-day-name {
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .dinner-day-date {
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+      .dinner-meal {
+        flex: 1;
+        font-size: 0.95rem;
+        color: var(--text);
+      }
+      .dinner-meal.empty {
+        color: var(--muted);
+        font-style: italic;
+      }
+      .dinner-today-badge {
+        font-size: 0.65rem;
+        font-weight: 700;
+        background: var(--blue);
+        color: white;
+        border-radius: 6px;
+        padding: 2px 6px;
+      }
+
+      /* ── BESKJEDER ── */
+      .message-card {
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--blue);
+        padding: 14px;
+        margin-bottom: 10px;
+        position: relative;
+      }
+      .message-card.author-kona {
+        border-left-color: var(--purple);
+      }
+      .message-card-text {
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+      .message-card-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+      }
+      .message-card-author {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--blue);
+      }
+      .message-card.author-kona .message-card-author {
+        color: var(--purple);
+      }
+      .message-card-time {
+        font-size: 0.72rem;
+        color: var(--muted);
+      }
+      .message-delete {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 4px;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+      }
+
+      .compose-bar {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        padding: 10px 12px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+      }
+      .compose-input {
+        flex: 1;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        color: var(--text);
+        resize: none;
+        max-height: 120px;
+        font-family: inherit;
+        line-height: 1.4;
+      }
+      .compose-input::placeholder {
+        color: var(--muted);
+      }
+      .compose-input:focus {
+        outline: none;
+        border-color: var(--blue);
+      }
+      .compose-author {
+        background: var(--surface2);
+        border: 1px solid var(--blue);
+        border-radius: 20px;
+        padding: 10px 14px;
+        font-size: 0.85rem;
+        color: var(--blue);
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .compose-author.kona {
+        color: var(--purple);
+        border-color: var(--purple);
+      }
+      .compose-send {
+        background: var(--blue);
+        border: none;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.1rem;
+        cursor: pointer;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .compose-send:active {
+        opacity: 0.8;
+      }
+
+      /* ── HANDLELISTE ── */
+      .shop-input-bar {
+        display: flex;
+        gap: 8px;
+        padding: 12px 16px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .shop-input {
+        flex: 1;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        color: var(--text);
+        font-family: inherit;
+      }
+      .shop-input::placeholder {
+        color: var(--muted);
+      }
+      .shop-input:focus {
+        outline: none;
+        border-color: var(--blue);
+      }
+      .shop-qty-input {
+        width: 58px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 10px 10px;
+        font-size: 0.9rem;
+        color: var(--text);
+        font-family: inherit;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .shop-qty-input::placeholder {
+        color: var(--muted);
+      }
+      .shop-qty-input:focus {
+        outline: none;
+        border-color: var(--blue);
+      }
+      .shop-qty-badge {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--blue);
+        background: rgba(59, 130, 246, 0.15);
+        border-radius: 6px;
+        padding: 2px 7px;
+        flex-shrink: 0;
+      }
+      .shop-add-btn {
+        background: var(--blue);
+        border: none;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.3rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .shop-group { border-radius: var(--radius-sm); margin-bottom: 4px; }
+      .shop-group.shop-drop-target { background: rgba(59,130,246,0.07); outline: 2px dashed var(--blue); outline-offset: 2px; border-radius: var(--radius-sm); }
+      .shop-drag-handle {
+        color: var(--border);
+        font-size: 1.15rem;
+        cursor: grab;
+        padding: 4px 0;
+        flex-shrink: 0;
+        touch-action: none;
+        line-height: 1;
+        user-select: none;
+      }
+      .shop-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 16px;
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border);
+        margin-bottom: 8px;
+        transition: opacity var(--transition);
+      }
+      .shop-item.shop-dragging { opacity: 0.25; }
+      .shop-item.done {
+        opacity: 0.4;
+      }
+      .shop-checkbox {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition:
+          background var(--transition),
+          border-color var(--transition);
+      }
+      .shop-item.done .shop-checkbox {
+        background: var(--green);
+        border-color: var(--green);
+      }
+      .shop-checkbox-tick {
+        color: white;
+        font-size: 0.8rem;
+        display: none;
+      }
+      .shop-item.done .shop-checkbox-tick {
+        display: block;
+      }
+      .shop-item-text {
+        flex: 1;
+        font-size: 0.95rem;
+      }
+      .shop-item.done .shop-item-text {
+        text-decoration: line-through;
+        color: var(--muted);
+      }
+      .shop-delete {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 1rem;
+        cursor: pointer;
+        padding: 4px;
+      }
+      .shop-cat-bar {
+        display: flex;
+        gap: 8px;
+        padding: 10px 12px;
+        overflow-x: auto;
+        scrollbar-width: none;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .shop-cat-bar::-webkit-scrollbar {
+        display: none;
+      }
+      .shop-cat-chip {
+        flex-shrink: 0;
+        padding: 5px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        font-size: 0.82rem;
+        cursor: pointer;
+        white-space: nowrap;
+        transition:
+          background 0.15s,
+          color 0.15s,
+          border-color 0.15s;
+      }
+      .shop-cat-chip.active {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: #fff;
+      }
+      .shop-fav-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+        color: var(--muted);
+        cursor: pointer;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+      }
+      .shop-fav-btn.active {
+        color: var(--yellow);
+        border-color: var(--yellow);
+      }
+
+      .shop-quickpicks-section {
+        border-bottom: 1px solid var(--border);
+        padding: 8px 0 10px;
+        flex-shrink: 0;
+      }
+      .shop-quickpicks-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        padding: 0 12px 6px;
+      }
+      .shop-quickpicks-row {
+        display: flex;
+        gap: 8px;
+        padding: 0 12px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .shop-quickpicks-row::-webkit-scrollbar {
+        display: none;
+      }
+      .shop-qp-chip {
+        flex-shrink: 0;
+        padding: 6px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--text);
+        font-size: 0.85rem;
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        white-space: nowrap;
+        transition: background 0.12s;
+      }
+      .shop-qp-chip:active {
+        background: var(--surface2);
+      }
+
+      .shop-group-label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        padding: 12px 0 6px;
+      }
+      .shop-group-label:first-child {
+        padding-top: 0;
+      }
+      .shop-clear-btn {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--muted);
+        font-size: 0.85rem;
+        padding: 10px;
+        width: 100%;
+        cursor: pointer;
+        margin-top: 4px;
+      }
+      .shop-clear-btn:active {
+        opacity: 0.7;
+      }
+
+      /* Bottom sheet */
+      /* ── Meals library ── */
+      .meals-library {
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        flex-shrink: 0;
+        padding: 10px 0 max(12px, env(safe-area-inset-bottom));
+      }
+      .meals-library-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        padding: 0 14px 6px;
+      }
+      .meals-library-row {
+        display: flex;
+        gap: 8px;
+        padding: 0 14px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .meals-library-row::-webkit-scrollbar { display: none; }
+      .meal-chip {
+        flex-shrink: 0;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 8px 14px;
+        cursor: grab;
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: none;
+      }
+      .meal-chip-name { font-size: 0.9rem; font-weight: 600; }
+      .meal-chip-ing { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+      .meal-chip.dragging { opacity: 0.4; }
+      .meal-drag-ghost {
+        position: fixed;
+        pointer-events: none;
+        z-index: 999;
+        background: var(--blue);
+        color: #fff;
+        border-radius: var(--radius-sm);
+        padding: 8px 14px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        opacity: 0.9;
+        transform: translate(-50%, -50%);
+        white-space: nowrap;
+      }
+      .dinner-row.drop-target { border-color: var(--blue); background: rgba(59,130,246,0.08); }
+
+      .ingredient-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .ingredient-input {
+        flex: 1;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 9px 12px;
+        font-size: 0.9rem;
+        color: var(--text);
+        font-family: inherit;
+      }
+      .ingredient-input:focus { outline: none; border-color: var(--blue); }
+      .ingredient-cat-select {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        font-size: 0.75rem;
+        padding: 8px 4px;
+        font-family: inherit;
+        cursor: pointer;
+        width: 108px;
+        flex-shrink: 0;
+      }
+      .ingredient-cat-select:focus { outline: none; border-color: var(--blue); }
+      .ingredient-del { background: none; border: none; color: var(--muted); font-size: 1.1rem; cursor: pointer; padding: 4px; }
+
+      .shop-modal-ing-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: var(--surface2);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        user-select: none;
+      }
+      .shop-modal-ing-name { flex: 1; font-size: 0.9rem; color: var(--text); }
+      .shop-modal-cat-badge {
+        font-size: 0.72rem;
+        color: var(--muted);
+        background: var(--surface);
+        border-radius: 99px;
+        padding: 2px 7px;
+        flex-shrink: 0;
+      }
+      .shop-modal-qty {
+        width: 46px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text);
+        font-size: 0.9rem;
+        padding: 4px 6px;
+        text-align: center;
+        font-family: inherit;
+        flex-shrink: 0;
+      }
+
+      .sheet-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 50;
+        display: flex;
+        align-items: flex-end;
+      }
+      .sheet-overlay.hidden {
+        display: none;
+      }
+      .sheet {
+        background: var(--surface);
+        border-radius: 24px 24px 0 0;
+        padding: 20px 20px;
+        padding-bottom: max(24px, env(safe-area-inset-bottom));
+        width: 100%;
+      }
+      .sheet-handle {
+        width: 40px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin: 0 auto 16px;
+      }
+      .sheet-title {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 14px;
+      }
+      .sheet-day-label {
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-bottom: 12px;
+      }
+      .sheet-input {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 12px 16px;
+        font-size: 1rem;
+        color: var(--text);
+        font-family: inherit;
+      }
+      .sheet-input:focus {
+        outline: none;
+        border-color: var(--blue);
+      }
+      .sheet-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+      }
+      .sheet-btn {
+        flex: 1;
+        padding: 13px;
+        border-radius: var(--radius-sm);
+        border: none;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .sheet-btn-cancel {
+        background: var(--surface2);
+        color: var(--muted);
+      }
+      .sheet-btn-save {
+        background: var(--blue);
+        color: white;
+      }
+      .sheet-btn-clear {
+        background: transparent;
+        color: var(--red);
+        border: 1px solid var(--red);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <!-- VIEW: Home -->
+      <div class="view" id="view-home">
+        <div class="header">
+          <div>
+            <h1>✨ Hverdagsmagi</h1>
+            <div class="home-date" id="home-date"></div>
+          </div>
+        </div>
+        <div class="scroll">
+          <div class="section-label">Middag i dag</div>
+          <div
+            class="today-dinner"
+            id="today-dinner-card"
+            onclick="showView('view-middager')"
+          >
+            <div class="today-dinner-emoji">🍽️</div>
+            <div>
+              <div class="today-dinner-label">I dag</div>
+              <div class="today-dinner-meal" id="today-dinner-text">
+                Laster…
+              </div>
+            </div>
+            <div class="today-dinner-arrow">›</div>
+          </div>
+
+          <div class="section-label">Siste beskjeder</div>
+          <div id="home-messages">
+            <div class="loading-state"><div class="spinner"></div></div>
+          </div>
+          <button
+            style="
+              background: none;
+              border: none;
+              color: var(--blue);
+              font-size: 0.85rem;
+              cursor: pointer;
+              padding: 4px 0;
+              margin-bottom: 16px;
+            "
+            onclick="showView('view-beskjeder')"
+          >
+            Se alle beskjeder →
+          </button>
+
+          <div class="section-label">Handleliste</div>
+          <div
+            class="shopping-preview"
+            id="home-shopping"
+            onclick="showView('view-handel')"
+          >
+            <span style="font-size: 1.3rem">🛒</span>
+            <span class="shopping-count" id="home-shopping-count">Laster…</span>
+            <span style="margin-left: auto; color: var(--muted)">›</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: Middager -->
+      <div class="view hidden" id="view-middager">
+        <div class="header">
+          <button class="back-btn" onclick="showView('view-home')">←</button>
+          <h1>🍽️ Middagsplan</h1>
+          <button class="header-action" onclick="openMealForm()" title="Legg til måltid">+</button>
+        </div>
+        <div class="week-nav">
+          <button class="week-nav-btn" onclick="changeWeek(-1)">‹</button>
+          <div class="week-nav-title" id="week-label"></div>
+          <button class="week-nav-btn" onclick="changeWeek(1)">›</button>
+        </div>
+        <div class="scroll" id="dinner-list" style="padding-bottom:16px">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+        <div class="meals-library" id="meals-library" style="display:none">
+          <div class="meals-library-label">Dra et måltid inn på en dag</div>
+          <div class="meals-library-row" id="meals-library-row"></div>
+        </div>
+      </div>
+
+      <!-- VIEW: Beskjeder -->
+      <div class="view hidden" id="view-beskjeder">
+        <div class="header">
+          <button class="back-btn" onclick="showView('view-home')">←</button>
+          <h1>💬 Beskjeder</h1>
+        </div>
+        <div class="scroll" id="messages-list" style="padding-bottom: 120px">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+        <div class="compose-bar">
+          <button
+            class="compose-author"
+            id="author-toggle"
+            onclick="toggleAuthor()"
+          >
+            Jørgen
+          </button>
+          <textarea
+            class="compose-input"
+            id="compose-text"
+            placeholder="Skriv en beskjed…"
+            rows="1"
+            oninput="
+              this.style.height = 'auto';
+              this.style.height = this.scrollHeight + 'px';
+            "
+          ></textarea>
+          <button class="compose-send" onclick="sendMessage()">↑</button>
+        </div>
+      </div>
+
+      <!-- VIEW: Handleliste -->
+      <div class="view hidden" id="view-handel">
+        <div class="header">
+          <button class="back-btn" onclick="showView('view-home')">←</button>
+          <h1>🛒 Handleliste</h1>
+        </div>
+        <div class="shop-input-bar">
+          <input
+            class="shop-input"
+            id="shop-input"
+            placeholder="Legg til vare…"
+            onkeydown="if (event.key === 'Enter') addShopItem();"
+          />
+          <input
+            class="shop-qty-input"
+            id="shop-qty"
+            type="number"
+            min="1"
+            max="99"
+            value="1"
+            onkeydown="if (event.key === 'Enter') addShopItem();"
+          />
+          <button
+            class="shop-fav-btn"
+            id="shop-fav-btn"
+            onclick="toggleSaveQuickPick()"
+            title="Lagre som hurtigvalg"
+          >
+            ☆
+          </button>
+          <button class="shop-add-btn" onclick="addShopItem()">+</button>
+        </div>
+        <div class="shop-cat-bar" id="shop-cat-bar"></div>
+        <div
+          class="shop-quickpicks-section"
+          id="shop-quickpicks-section"
+          style="display: none"
+        >
+          <div class="shop-quickpicks-label">Hurtigvalg</div>
+          <div class="shop-quickpicks-row" id="shop-quickpicks-row"></div>
+        </div>
+        <div class="scroll" id="shop-list">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom nav (global) -->
+    <div class="bottom-nav" id="bottom-nav">
+      <button
+        class="nav-btn active"
+        data-view="view-home"
+        onclick="showView('view-home')"
+      >
+        <span class="nav-icon">🏠</span>Hjem
+      </button>
+      <button
+        class="nav-btn"
+        data-view="view-middager"
+        onclick="showView('view-middager')"
+      >
+        <span class="nav-icon">🍽️</span>Middager
+      </button>
+      <button
+        class="nav-btn"
+        data-view="view-beskjeder"
+        onclick="showView('view-beskjeder')"
+      >
+        <span class="nav-icon">💬</span>Beskjeder
+      </button>
+      <button
+        class="nav-btn"
+        data-view="view-handel"
+        onclick="showView('view-handel')"
+      >
+        <span class="nav-icon">🛒</span>Handel
+      </button>
+    </div>
+
+    <!-- Bottom sheet: edit dinner -->
+    <div
+      class="sheet-overlay hidden"
+      id="dinner-sheet"
+      onclick="closeDinnerSheet(event)"
+    >
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Middag</div>
+        <div class="sheet-day-label" id="sheet-day-label"></div>
+        <input class="sheet-input" id="sheet-input" placeholder="Hva er til middag?" />
+        <div class="sheet-actions">
+          <button
+            class="sheet-btn sheet-btn-cancel"
+            onclick="closeDinnerSheet()"
+          >
+            Avbryt
+          </button>
+          <button class="sheet-btn sheet-btn-clear" onclick="clearDinner()">
+            Fjern
+          </button>
+          <button class="sheet-btn sheet-btn-save" onclick="saveDinner()">
+            Lagre
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Meal creation sheet -->
+    <div class="sheet-overlay hidden" id="meal-form-sheet" onclick="if(event.target===this)closeMealForm()">
+      <div class="sheet" style="max-height:85vh;overflow-y:auto">
+        <div class="sheet-handle"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <div class="sheet-title" style="margin-bottom:0;flex:1" id="meal-form-title">Nytt måltid</div>
+          <button id="meal-form-delete-btn" onclick="deleteMeal()" style="display:none;background:var(--red);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer">🗑</button>
+        </div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em">Navn</div>
+        <input class="sheet-input" id="meal-name-input" placeholder="F.eks. Taco, Pasta carbonara…" style="margin-bottom:14px" />
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:0.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.07em">Ingredienser</div>
+          <button onclick="addIngredientRow()" style="background:none;border:none;color:var(--blue);font-size:0.85rem;cursor:pointer">+ Legg til</button>
+        </div>
+        <div id="ingredient-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
+        <div class="sheet-actions">
+          <button class="sheet-btn sheet-btn-cancel" onclick="closeMealForm()">Avbryt</button>
+          <button class="sheet-btn sheet-btn-save" onclick="saveMeal()">Lagre</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add meal ingredients to shopping modal -->
+    <div class="sheet-overlay hidden" id="meal-shop-modal" onclick="if(event.target===this)closeMealShopModal()">
+      <div class="sheet" style="max-height:85vh;overflow-y:auto">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Legg til i handleliste?</div>
+        <div id="meal-shop-modal-sub" style="color:var(--muted);font-size:0.85rem;margin-bottom:14px"></div>
+        <div id="meal-shop-ing-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+        <div class="sheet-actions">
+          <button class="sheet-btn sheet-btn-cancel" onclick="closeMealShopModal()">Hopp over</button>
+          <button class="sheet-btn sheet-btn-save" onclick="confirmMealShop()">Legg til</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Item qty edit modal -->
+    <div
+      class="sheet-overlay hidden"
+      id="item-qty-modal"
+      onclick="if (event.target === this) closeItemQtyModal();"
+    >
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Endre vare</div>
+        <div style="font-size:0.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Antall</div>
+        <input
+          class="sheet-input"
+          id="item-qty-modal-input"
+          type="number"
+          min="1"
+          max="99"
+          value="1"
+          style="margin-bottom:14px"
+        />
+        <div style="font-size:0.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Kategori</div>
+        <select class="sheet-input" id="item-cat-modal-select" style="margin-bottom:14px;cursor:pointer"></select>
+        <div class="sheet-actions">
+          <button
+            class="sheet-btn sheet-btn-cancel"
+            onclick="closeItemQtyModal()"
+          >
+            Avbryt
+          </button>
+          <button
+            class="sheet-btn sheet-btn-save"
+            onclick="confirmItemQtyModal()"
+          >
+            Lagre
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick-pick qty modal -->
+    <div
+      class="sheet-overlay hidden"
+      id="qp-modal"
+      onclick="if (event.target === this) closeQpModal();"
+    >
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div class="sheet-title" id="qp-modal-title" style="flex: 1"></div>
+          <button
+            onclick="deleteQuickPick()"
+            style="
+              background: var(--red);
+              border: none;
+              color: #fff;
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              font-size: 1rem;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+            "
+          >
+            🗑
+          </button>
+        </div>
+        <div class="sheet-day-label">Hvor mange vil du legge til?</div>
+        <input
+          class="sheet-input"
+          id="qp-modal-qty"
+          type="number"
+          min="1"
+          max="99"
+          value="1"
+          style="margin-top: 8px"
+        />
+        <div class="sheet-actions">
+          <button class="sheet-btn sheet-btn-cancel" onclick="closeQpModal()">
+            Avbryt
+          </button>
+          <button class="sheet-btn sheet-btn-save" onclick="confirmQpModal()">
+            Legg til
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      import {
+        getFirestore,
+        collection,
+        doc,
+        getDoc,
+        setDoc,
+        deleteDoc,
+        addDoc,
+        onSnapshot,
+        query,
+        orderBy,
+        limit,
+        where,
+        serverTimestamp,
+        writeBatch,
+        deleteField,
+      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+      // ── Firebase config ──────────────────────────────────────────────────────────
+      const FIREBASE_CONFIG = {
+        apiKey: "AIzaSyCjaE000v91mEBrtovdVpPsd3-FHGBOJKE",
+        authDomain: "hverdagskaos-3212.firebaseapp.com",
+        projectId: "hverdagskaos-3212",
+        storageBucket: "hverdagskaos-3212.firebasestorage.app",
+        messagingSenderId: "86514036178",
+        appId: "1:86514036178:web:dda8bcd92a0bf5447bec0b",
+      };
+      // ────────────────────────────────────────────────────────────────────────────
+
+      const app = initializeApp(FIREBASE_CONFIG);
+      const db = getFirestore(app);
+
+      // ── State ───────────────────────────────────────────────────────────────────
+      let currentView = "view-home";
+      let weekOffset = 0;
+      let editingDate = null;
+      let dinners = {}; // date -> meal string
+      let composeAuthor = localStorage.getItem("compose_author") || "Kine";
+
+      let unsubMessages = null;
+      let unsubShopping = null;
+      let unsubDinners = null;
+
+      const SHOP_CATEGORIES = [
+        { id: "frukt", label: "🥦 Frukt & grønt" },
+        { id: "meieri", label: "🥛 Meieri & egg" },
+        { id: "snacks", label: "🍫 Snacks og godteri" },
+        { id: "kjott", label: "🥩 Kjøtt & fisk" },
+        { id: "brod", label: "🍞 Brød & bakst" },
+        { id: "tørr", label: "🥫 Tørrvarer" },
+        { id: "frys", label: "🧊 Frysevarer" },
+        { id: "drikke", label: "🧃 Drikke" },
+        { id: "pleie", label: "🛀 Personlig pleie" },
+        { id: "husholdning", label: "🧼 Husholdningsartikler" },
+        { id: "annet", label: "📦 Annet" },
+      ];
+      let selectedCategory = "annet";
+      let saveAsQuickPick = false;
+      let quickPicks = [];
+      let activeShopTexts = new Set(); // text (lowercase) of undone items — for quickpick filtering
+      let activeShopItems = new Map(); // text.toLowerCase() → { id, qty } — for dedup on add
+      let unsubQuickPicks = null;
+
+      // ── Date helpers ────────────────────────────────────────────────────────────
+      function toISO(d) {
+        return d.toISOString().slice(0, 10);
+      }
+
+      function startOfWeek(offset) {
+        const now = new Date();
+        const day = now.getDay() || 7;
+        const mon = new Date(now);
+        mon.setDate(now.getDate() - day + 1 + offset * 7);
+        mon.setHours(0, 0, 0, 0);
+        return mon;
+      }
+
+      function weekDays(offset) {
+        const mon = startOfWeek(offset);
+        return Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(mon);
+          d.setDate(mon.getDate() + i);
+          return d;
+        });
+      }
+
+      const DAY_NAMES = [
+        "Mandag",
+        "Tirsdag",
+        "Onsdag",
+        "Torsdag",
+        "Fredag",
+        "Lørdag",
+        "Søndag",
+      ];
+      const MONTH_NAMES = [
+        "jan",
+        "feb",
+        "mar",
+        "apr",
+        "mai",
+        "jun",
+        "jul",
+        "aug",
+        "sep",
+        "okt",
+        "nov",
+        "des",
+      ];
+
+      function fmtDate(d) {
+        return `${d.getDate()}. ${MONTH_NAMES[d.getMonth()]}`;
+      }
+
+      function fmtTime(ts) {
+        if (!ts) return "";
+        const d = ts.toDate ? ts.toDate() : new Date(ts);
+        const now = new Date();
+        const diff = now - d;
+        if (diff < 60000) return "nå nettopp";
+        if (diff < 3600000) return `${Math.floor(diff / 60000)} min siden`;
+        if (diff < 86400000)
+          return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+        return `${d.getDate()}. ${MONTH_NAMES[d.getMonth()]} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      }
+
+      // ── Navigation ──────────────────────────────────────────────────────────────
+      window.showView = function (id) {
+        const prev = currentView;
+        currentView = id;
+        document.querySelectorAll(".view").forEach((v) => {
+          if (v.id === id) {
+            v.classList.remove("hidden", "slide-left");
+          } else if (v.id === prev) {
+            v.classList.add("slide-left");
+            v.classList.remove("hidden");
+          } else {
+            v.classList.add("hidden");
+            v.classList.remove("slide-left");
+          }
+        });
+        document.querySelectorAll(".nav-btn").forEach((b) => {
+          b.classList.toggle("active", b.dataset.view === id);
+        });
+
+        if (id === "view-middager") { renderWeek(); subscribeMeals(); }
+        if (id === "view-beskjeder") {
+          subscribeMessages();
+          const btn = document.getElementById("author-toggle");
+          btn.textContent = composeAuthor;
+          btn.classList.toggle("kona", composeAuthor === "Kine");
+        }
+        if (id === "view-handel") {
+          buildCatBar();
+          subscribeShoppingList();
+          subscribeQuickPicks();
+        }
+      };
+
+      // ── Home ────────────────────────────────────────────────────────────────────
+      function initHome() {
+        const now = new Date();
+        const dayName = [
+          "Søndag",
+          "Mandag",
+          "Tirsdag",
+          "Onsdag",
+          "Torsdag",
+          "Fredag",
+          "Lørdag",
+        ][now.getDay()];
+        document.getElementById("home-date").textContent =
+          `${dayName} ${now.getDate()}. ${MONTH_NAMES[now.getMonth()]}`;
+
+        subscribeHomeMessages();
+        subscribeHomeShopping();
+        subscribeTodayDinner();
+      }
+
+      function subscribeTodayDinner() {
+        const today = toISO(new Date());
+        onSnapshot(doc(db, "dinners", today), (snap) => {
+          const meal = snap.exists() ? snap.data().meal : null;
+          document.getElementById("today-dinner-text").textContent =
+            meal || "Ikke planlagt ennå";
+        });
+      }
+
+      function subscribeHomeMessages() {
+        const q = query(
+          collection(db, "messages"),
+          orderBy("timestamp", "desc"),
+          limit(3),
+        );
+        onSnapshot(q, (snap) => {
+          const msgs = [];
+          snap.forEach((d) => msgs.push({ id: d.id, ...d.data() }));
+          const container = document.getElementById("home-messages");
+          if (msgs.length === 0) {
+            container.innerHTML =
+              '<div class="empty-state" style="padding:12px 0"><div class="empty-icon" style="font-size:1.5rem">💬</div>Ingen beskjeder ennå</div>';
+            return;
+          }
+          container.innerHTML = msgs
+            .map(
+              (m) => `
+            <div class="message-preview" onclick="showView('view-beskjeder')"
+                 style="border-left-color:${m.author === "Kine" ? "var(--purple)" : "var(--blue)"}">
+              <div class="message-preview-text">${escHtml(m.text)}</div>
+              <div class="message-preview-meta">${escHtml(m.author)} · ${fmtTime(m.timestamp)}</div>
+            </div>`,
+            )
+            .join("");
+        });
+      }
+
+      function subscribeHomeShopping() {
+        const q = query(collection(db, "shopping"), where("done", "==", false));
+        onSnapshot(q, (snap) => {
+          const count = snap.size;
+          document.getElementById("home-shopping-count").innerHTML =
+            count === 0
+              ? "Listen er tom"
+              : `<strong>${count}</strong> ${count === 1 ? "vare" : "varer"} lagt til`;
+        });
+      }
+
+      // ── Middager ────────────────────────────────────────────────────────────────
+      window.changeWeek = function (delta) {
+        weekOffset += delta;
+        renderWeek();
+      };
+
+      function subscribeWeekDinners() {
+        if (unsubDinners) unsubDinners();
+        const days = weekDays(weekOffset);
+        const startISO = toISO(days[0]);
+        const endISO = toISO(days[6]);
+        const q = query(
+          collection(db, "dinners"),
+          where("__name__", ">=", startISO),
+          where("__name__", "<=", endISO),
+        );
+        unsubDinners = onSnapshot(q, (snap) => {
+          dinners = {};
+          snap.forEach((d) => {
+            dinners[d.id] = d.data().meal;
+          });
+          renderDinnerRows();
+        });
+      }
+
+      function renderWeek() {
+        const days = weekDays(weekOffset);
+        const mon = days[0];
+        const sun = days[6];
+        const label =
+          weekOffset === 0
+            ? "Denne uken"
+            : weekOffset === 1
+              ? "Neste uke"
+              : weekOffset === -1
+                ? "Forrige uke"
+                : `${fmtDate(mon)} – ${fmtDate(sun)}`;
+        document.getElementById("week-label").textContent = label;
+        subscribeWeekDinners();
+      }
+
+      function renderDinnerRows() {
+        const days = weekDays(weekOffset);
+        const todayISO = toISO(new Date());
+        const list = document.getElementById("dinner-list");
+        list.innerHTML = days
+          .map((d, i) => {
+            const iso = toISO(d);
+            const meal = dinners[iso];
+            const isToday = iso === todayISO;
+            return `
+            <div class="dinner-row${isToday ? " today" : ""}" data-date="${iso}" onclick="openDinnerSheet('${iso}', '${DAY_NAMES[i]} ${fmtDate(d)}')">
+              <div class="dinner-day">
+                <div class="dinner-day-name">${DAY_NAMES[i]}</div>
+                <div class="dinner-day-date">${fmtDate(d)}</div>
+              </div>
+              ${isToday ? '<span class="dinner-today-badge">I dag</span>' : ""}
+              <div class="dinner-meal${meal ? "" : " empty"}">${meal ? escHtml(meal) : "Ikke planlagt"}</div>
+              <span style="color:var(--muted);margin-left:auto">✏️</span>
+            </div>`;
+          })
+          .join("");
+      }
+
+      // ── Meals library ────────────────────────────────────────────────────────────
+      let meals = [];
+      let unsubMeals = null;
+      let editingMealId = null;
+      let dragMeal = null;
+      let dragGhost = null;
+      let pendingDragMeal = null;
+      let shopDragId = null;
+      let shopDragOrigCat = null;
+      let shopDragLabel = null;
+      let shopDragGhost = null;
+
+      function startShopDrag(id, origCat, x, y, label, el) {
+        shopDragId = id;
+        shopDragOrigCat = origCat;
+        shopDragLabel = label;
+        el.classList.add("shop-dragging");
+        shopDragGhost = document.createElement("div");
+        shopDragGhost.className = "drag-ghost";
+        shopDragGhost.textContent = label;
+        document.body.appendChild(shopDragGhost);
+        moveShopGhost(x, y);
+      }
+
+      function moveShopGhost(x, y) {
+        if (shopDragGhost) shopDragGhost.style.transform = `translate(${x - 60}px, ${y - 20}px)`;
+      }
+
+      async function endShopDrag(x, y) {
+        if (shopDragGhost) { shopDragGhost.remove(); shopDragGhost = null; }
+        document.querySelectorAll(".shop-item.shop-dragging").forEach(e => e.classList.remove("shop-dragging"));
+        document.querySelectorAll(".shop-group.shop-drop-target").forEach(g => g.classList.remove("shop-drop-target"));
+        const targetGroup = document.elementFromPoint(x, y)?.closest(".shop-group");
+        const newCat = targetGroup?.dataset.cat;
+        if (shopDragId && newCat && newCat !== shopDragOrigCat) {
+          const { updateDoc: upd } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+          const updates = [upd(doc(db, "shopping", shopDragId), { category: newCat })];
+          // also update quickpick if one exists with same text
+          if (shopDragLabel) {
+            const qp = quickPicks.find(q => q.text.toLowerCase() === shopDragLabel.toLowerCase());
+            if (qp) updates.push(upd(doc(db, "quickpicks", qp.id), { category: newCat }));
+          }
+          await Promise.all(updates);
+        }
+        shopDragId = null;
+        shopDragOrigCat = null;
+        shopDragLabel = null;
+      }
+
+      function subscribeMeals() {
+        if (unsubMeals) return;
+        const q = query(collection(db, 'meals'), orderBy('count', 'desc'));
+        unsubMeals = onSnapshot(q, snap => {
+          meals = [];
+          snap.forEach(d => meals.push({ id: d.id, ...d.data() }));
+          renderMealsLibrary();
+        });
+      }
+
+      function renderMealsLibrary() {
+        const lib = document.getElementById('meals-library');
+        const row = document.getElementById('meals-library-row');
+        if (!lib || !row) return;
+        if (meals.length === 0) { lib.style.display = 'none'; return; }
+        lib.style.display = 'block';
+        row.innerHTML = meals.map(m => `
+          <div class="meal-chip" data-id="${m.id}">
+            <div class="meal-chip-name">${escHtml(m.name)}</div>
+            ${m.ingredients?.length ? `<div class="meal-chip-ing">${m.ingredients.slice(0,3).map(i => escHtml(typeof i === 'string' ? i : i.name)).join(', ')}${m.ingredients.length > 3 ? '…' : ''}</div>` : ''}
+          </div>`).join('');
+
+        row.querySelectorAll('.meal-chip').forEach(chip => {
+          const id = chip.dataset.id;
+          let longPressTimer = null;
+
+          // Long press → edit meal
+          const startLP = () => { longPressTimer = setTimeout(() => { longPressTimer = null; openMealForm(id); }, 600); };
+          const cancelLP = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } };
+
+          // Touch drag
+          chip.addEventListener('touchstart', e => {
+            startLP();
+            const touch = e.touches[0];
+            let moved = false;
+            const onMove = ev => {
+              if (!moved) { cancelLP(); moved = true; startDrag(id, chip, ev.touches[0].clientX, ev.touches[0].clientY); }
+              if (dragGhost) moveDragGhost(ev.touches[0].clientX, ev.touches[0].clientY);
+              highlightDropTarget(ev.touches[0].clientX, ev.touches[0].clientY);
+              ev.preventDefault();
+            };
+            const onEnd = ev => {
+              cancelLP();
+              document.removeEventListener('touchmove', onMove);
+              document.removeEventListener('touchend', onEnd);
+              if (moved) endDrag(ev.changedTouches[0].clientX, ev.changedTouches[0].clientY);
+            };
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend', onEnd);
+          }, { passive: true });
+
+          // Mouse drag (desktop)
+          chip.addEventListener('mousedown', e => {
+            startLP();
+            let moved = false;
+            const onMove = ev => {
+              if (!moved) { cancelLP(); moved = true; startDrag(id, chip, ev.clientX, ev.clientY); }
+              if (dragGhost) moveDragGhost(ev.clientX, ev.clientY);
+              highlightDropTarget(ev.clientX, ev.clientY);
+            };
+            const onUp = ev => {
+              cancelLP();
+              document.removeEventListener('mousemove', onMove);
+              document.removeEventListener('mouseup', onUp);
+              if (moved) endDrag(ev.clientX, ev.clientY);
+            };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+          });
+        });
+      }
+
+      function startDrag(id, chip, x, y) {
+        dragMeal = meals.find(m => m.id === id);
+        chip.classList.add('dragging');
+        dragGhost = document.createElement('div');
+        dragGhost.className = 'meal-drag-ghost';
+        dragGhost.textContent = dragMeal.name;
+        document.body.appendChild(dragGhost);
+        moveDragGhost(x, y);
+      }
+
+      function moveDragGhost(x, y) {
+        if (!dragGhost) return;
+        dragGhost.style.left = x + 'px';
+        dragGhost.style.top = y + 'px';
+      }
+
+      function highlightDropTarget(x, y) {
+        document.querySelectorAll('.dinner-row').forEach(r => r.classList.remove('drop-target'));
+        const el = document.elementFromPoint(x, y)?.closest('.dinner-row');
+        if (el) el.classList.add('drop-target');
+      }
+
+      async function endDrag(x, y) {
+        if (dragGhost) { dragGhost.remove(); dragGhost = null; }
+        document.querySelectorAll('.meal-chip.dragging').forEach(c => c.classList.remove('dragging'));
+        document.querySelectorAll('.dinner-row.drop-target').forEach(r => r.classList.remove('drop-target'));
+
+        const target = document.elementFromPoint(x, y)?.closest('.dinner-row');
+        if (target && dragMeal) {
+          const date = target.dataset.date;
+          if (date) {
+            const { updateDoc: upd } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+            await setDoc(doc(db, 'dinners', date), { meal: dragMeal.name, mealId: dragMeal.id });
+            await upd(doc(db, 'meals', dragMeal.id), { count: (dragMeal.count ?? 0) + 1 });
+            openMealShopModal(dragMeal);
+          }
+        }
+        dragMeal = null;
+      }
+
+      function openMealShopModal(meal) {
+        const ings = (meal.ingredients ?? []).filter(i => typeof i === 'object' ? i.name : i);
+        if (!ings.length) return;
+        pendingDragMeal = meal;
+        document.getElementById('meal-shop-modal-sub').textContent = meal.name;
+        const list = document.getElementById('meal-shop-ing-list');
+        list.innerHTML = ings.map((ing, i) => {
+          const name = typeof ing === 'string' ? ing : ing.name;
+          const cat = (typeof ing === 'object' && ing.category) ? ing.category : 'annet';
+          const catLabel = SHOP_CATEGORIES.find(c => c.id === cat)?.label ?? cat;
+          return `<label class="shop-modal-ing-row">
+            <input type="checkbox" class="shop-ing-check" data-idx="${i}" checked />
+            <span class="shop-modal-ing-name">${escHtml(name)}</span>
+            <span class="shop-modal-cat-badge">${escHtml(catLabel)}</span>
+            <input type="number" class="shop-modal-qty" data-idx="${i}" min="1" max="99" value="1" onclick="event.stopPropagation()" />
+          </label>`;
+        }).join('');
+        document.getElementById('meal-shop-modal').classList.remove('hidden');
+      }
+
+      window.closeMealShopModal = function() {
+        document.getElementById('meal-shop-modal').classList.add('hidden');
+        pendingDragMeal = null;
+      };
+
+      window.confirmMealShop = async function() {
+        if (!pendingDragMeal) return;
+        const ings = (pendingDragMeal.ingredients ?? []).filter(i => typeof i === 'object' ? i.name : i);
+        const toAdd = [...document.querySelectorAll('.shop-ing-check')].map(cb => {
+          if (!cb.checked) return null;
+          const idx = parseInt(cb.dataset.idx);
+          const ing = ings[idx];
+          if (!ing) return null;
+          const name = typeof ing === 'string' ? ing : ing.name;
+          const cat = (typeof ing === 'object' && ing.category) ? ing.category : 'annet';
+          const qty = parseInt(document.querySelector(`.shop-modal-qty[data-idx="${idx}"]`)?.value) || 1;
+          return { text: name, category: cat, qty, done: false };
+        }).filter(Boolean);
+        closeMealShopModal();
+        const { updateDoc: upd } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+        for (const item of toAdd) {
+          const existing = activeShopItems.get(item.text.toLowerCase());
+          if (existing) {
+            await upd(doc(db, 'shopping', existing.id), { qty: existing.qty + item.qty });
+          } else {
+            await addDoc(collection(db, 'shopping'), { ...item, timestamp: serverTimestamp() });
+          }
+        }
+      };
+
+      // Meal form
+      window.openMealForm = function(id = null) {
+        editingMealId = id;
+        const meal = id ? meals.find(m => m.id === id) : null;
+        document.getElementById('meal-form-title').textContent = meal ? 'Rediger måltid' : 'Nytt måltid';
+        document.getElementById('meal-name-input').value = meal?.name ?? '';
+        document.getElementById('meal-form-delete-btn').style.display = meal ? 'flex' : 'none';
+        const ingList = document.getElementById('ingredient-list');
+        ingList.innerHTML = '';
+        (meal?.ingredients ?? ['']).forEach(ing => addIngredientRow(ing));
+        if ((meal?.ingredients ?? []).length === 0) addIngredientRow('');
+        document.getElementById('meal-form-sheet').classList.remove('hidden');
+        setTimeout(() => document.getElementById('meal-name-input').focus(), 100);
+      };
+
+      window.closeMealForm = function() {
+        document.getElementById('meal-form-sheet').classList.add('hidden');
+        editingMealId = null;
+      };
+
+      window.addIngredientRow = function(ing = null) {
+        const ingName = typeof ing === 'string' ? ing : (ing?.name ?? '');
+        const ingCat = (typeof ing === 'object' && ing?.category) ? ing.category : 'annet';
+        const row = document.createElement('div');
+        row.className = 'ingredient-row';
+        const catOptions = SHOP_CATEGORIES.map(c =>
+          `<option value="${c.id}"${c.id === ingCat ? ' selected' : ''}>${c.label}</option>`
+        ).join('');
+        row.innerHTML = `<input class="ingredient-input" placeholder="Ingrediens…" value="${escHtml(ingName)}" />
+          <select class="ingredient-cat-select">${catOptions}</select>
+          <button class="ingredient-del" onclick="this.parentElement.remove()">✕</button>`;
+        document.getElementById('ingredient-list').appendChild(row);
+        if (!ingName) row.querySelector('input').focus();
+      };
+
+      window.saveMeal = async function() {
+        const name = document.getElementById('meal-name-input').value.trim();
+        if (!name) return;
+        const ingredients = [...document.querySelectorAll('.ingredient-row')]
+          .map(row => ({
+            name: row.querySelector('.ingredient-input').value.trim(),
+            category: row.querySelector('.ingredient-cat-select').value,
+          }))
+          .filter(i => i.name);
+        const { updateDoc: upd } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+        if (editingMealId) {
+          await upd(doc(db, 'meals', editingMealId), { name, ingredients });
+        } else {
+          await addDoc(collection(db, 'meals'), { name, ingredients, count: 0, added: serverTimestamp() });
+        }
+        closeMealForm();
+      };
+
+      window.deleteMeal = async function() {
+        if (!editingMealId) return;
+        closeMealForm();
+        await deleteDoc(doc(db, 'meals', editingMealId));
+      };
+
+      window.openDinnerSheet = function (date, label) {
+        editingDate = date;
+        document.getElementById("sheet-day-label").textContent = label;
+        document.getElementById("sheet-input").value = dinners[date] || "";
+        document.getElementById("dinner-sheet").classList.remove("hidden");
+        setTimeout(() => document.getElementById("sheet-input").focus(), 100);
+      };
+
+      window.closeDinnerSheet = function (e) {
+        if (e && e.target !== document.getElementById("dinner-sheet")) return;
+        document.getElementById("dinner-sheet").classList.add("hidden");
+        editingDate = null;
+      };
+
+      window.saveDinner = async function () {
+        if (!editingDate) return;
+        const meal = document.getElementById("sheet-input").value.trim();
+        if (meal) {
+          await setDoc(doc(db, "dinners", editingDate), { meal });
+        } else {
+          await deleteDoc(doc(db, "dinners", editingDate));
+        }
+        document.getElementById("dinner-sheet").classList.add("hidden");
+        editingDate = null;
+      };
+
+      window.clearDinner = async function () {
+        if (!editingDate) return;
+        await deleteDoc(doc(db, "dinners", editingDate));
+        document.getElementById("dinner-sheet").classList.add("hidden");
+        editingDate = null;
+      };
+
+      // ── Quick picks ─────────────────────────────────────────────────────────────
+      window.toggleSaveQuickPick = function () {
+        saveAsQuickPick = !saveAsQuickPick;
+        const btn = document.getElementById("shop-fav-btn");
+        btn.textContent = saveAsQuickPick ? "★" : "☆";
+        btn.classList.toggle("active", saveAsQuickPick);
+      };
+
+      function subscribeQuickPicks() {
+        if (unsubQuickPicks) return;
+        const q = query(collection(db, "quickpicks"), orderBy("count", "desc"));
+        unsubQuickPicks = onSnapshot(q, (snap) => {
+          quickPicks = [];
+          snap.forEach((d) => quickPicks.push({ id: d.id, ...d.data() }));
+          renderQuickPicks();
+        });
+      }
+
+      function renderQuickPicks() {
+        const visible = quickPicks.filter(
+          (qp) => !activeShopTexts.has(qp.text.toLowerCase()),
+        );
+        const section = document.getElementById("shop-quickpicks-section");
+        const row = document.getElementById("shop-quickpicks-row");
+        if (!section || !row) return;
+        if (visible.length === 0) {
+          section.style.display = "none";
+          return;
+        }
+        section.style.display = "block";
+        row.innerHTML = visible
+          .map(
+            (qp) => `
+          <div class="shop-qp-chip" data-id="${qp.id}">${escHtml(qp.text)}</div>`,
+          )
+          .join("");
+
+        row.querySelectorAll(".shop-qp-chip").forEach((chip) => {
+          const qpId = chip.dataset.id;
+          const qp = quickPicks.find((q) => q.id === qpId);
+          if (!qp) return;
+          let pressTimer = null;
+
+          const startPress = () => {
+            pressTimer = setTimeout(() => {
+              pressTimer = null;
+              openQpModal(qp);
+            }, 500);
+          };
+          const endPress = (e) => {
+            if (pressTimer) {
+              clearTimeout(pressTimer);
+              pressTimer = null;
+              e.preventDefault();
+              addFromQuickPick(qp, 1);
+            }
+          };
+          const cancelPress = () => {
+            if (pressTimer) {
+              clearTimeout(pressTimer);
+              pressTimer = null;
+            }
+          };
+
+          chip.addEventListener("touchstart", startPress, { passive: true });
+          chip.addEventListener("touchend", endPress);
+          chip.addEventListener("touchmove", cancelPress, { passive: true });
+          chip.addEventListener("mousedown", startPress);
+          chip.addEventListener("mouseup", endPress);
+          chip.addEventListener("mouseleave", cancelPress);
+        });
+      }
+
+      async function addFromQuickPick(qp, qty) {
+        const { updateDoc: upd } =
+          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        await Promise.all([
+          addDoc(collection(db, "shopping"), {
+            text: qp.text,
+            qty,
+            category: qp.category || "annet",
+            done: false,
+            timestamp: serverTimestamp(),
+          }),
+          upd(doc(db, "quickpicks", qp.id), {
+            count: (qp.count ?? 0) + 1,
+            lastAdded: serverTimestamp(),
+          }),
+        ]);
+      }
+
+      let pendingQp = null;
+
+      function openQpModal(qp) {
+        pendingQp = qp;
+        document.getElementById("qp-modal-title").textContent = qp.text;
+        document.getElementById("qp-modal-qty").value = 1;
+        document.getElementById("qp-modal").classList.remove("hidden");
+      }
+
+      let editingItemId = null;
+
+      function openItemQtyModal(id, currentQty, currentCat) {
+        editingItemId = id;
+        document.getElementById("item-qty-modal-input").value = currentQty;
+        const sel = document.getElementById("item-cat-modal-select");
+        sel.innerHTML = SHOP_CATEGORIES.map(c =>
+          `<option value="${c.id}"${c.id === (currentCat || 'annet') ? ' selected' : ''}>${c.label}</option>`
+        ).join('');
+        document.getElementById("item-qty-modal").classList.remove("hidden");
+      }
+
+      window.closeItemQtyModal = function () {
+        document.getElementById("item-qty-modal").classList.add("hidden");
+        editingItemId = null;
+      };
+
+      window.confirmItemQtyModal = async function () {
+        if (!editingItemId) return;
+        const qty = parseInt(document.getElementById("item-qty-modal-input").value) || 1;
+        const newCat = document.getElementById("item-cat-modal-select").value;
+        const itemId = editingItemId;
+        document.getElementById("item-qty-modal").classList.add("hidden");
+        editingItemId = null;
+        const { updateDoc: upd } =
+          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        await upd(doc(db, "shopping", itemId), { qty, category: newCat });
+        // sync quickpick category if it exists
+        const qp = quickPicks.find(q => {
+          const shopItem = document.querySelector(`.shop-item[data-id="${itemId}"] .shop-item-text`);
+          return shopItem && q.text.toLowerCase() === shopItem.textContent.toLowerCase();
+        });
+        if (qp && qp.category !== newCat) {
+          await upd(doc(db, "quickpicks", qp.id), { category: newCat });
+        }
+      };
+
+      window.closeQpModal = function () {
+        document.getElementById("qp-modal").classList.add("hidden");
+        pendingQp = null;
+      };
+
+      window.deleteQuickPick = async function () {
+        if (!pendingQp) return;
+        document.getElementById("qp-modal").classList.add("hidden");
+        await deleteDoc(doc(db, "quickpicks", pendingQp.id));
+        pendingQp = null;
+      };
+
+      window.confirmQpModal = async function () {
+        if (!pendingQp) return;
+        const qty =
+          parseInt(document.getElementById("qp-modal-qty").value) || 1;
+        document.getElementById("qp-modal").classList.add("hidden");
+        await addFromQuickPick(pendingQp, qty);
+        pendingQp = null;
+      };
+
+      // ── Beskjeder ────────────────────────────────────────────────────────────────
+      window.toggleAuthor = function () {
+        composeAuthor = composeAuthor === "Jørgen" ? "Kine" : "Jørgen";
+        localStorage.setItem("compose_author", composeAuthor);
+        const btn = document.getElementById("author-toggle");
+        btn.textContent = composeAuthor;
+        btn.classList.toggle("kona", composeAuthor === "Kine");
+      };
+
+      window.sendMessage = async function () {
+        const input = document.getElementById("compose-text");
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = "";
+        input.style.height = "auto";
+        await addDoc(collection(db, "messages"), {
+          text,
+          author: composeAuthor,
+          timestamp: serverTimestamp(),
+        });
+      };
+
+      window.deleteMessage = async function (id) {
+        await deleteDoc(doc(db, "messages", id));
+      };
+
+      function subscribeMessages() {
+        if (unsubMessages) return;
+        const q = query(
+          collection(db, "messages"),
+          orderBy("timestamp", "desc"),
+          limit(50),
+        );
+        unsubMessages = onSnapshot(q, (snap) => {
+          const msgs = [];
+          snap.forEach((d) => msgs.push({ id: d.id, ...d.data() }));
+          const list = document.getElementById("messages-list");
+          if (msgs.length === 0) {
+            list.innerHTML =
+              '<div class="empty-state"><div class="empty-icon">💬</div>Ingen beskjeder ennå.<br>Skriv den første!</div>';
+            return;
+          }
+          list.innerHTML = msgs
+            .map(
+              (m) => `
+            <div class="message-card${m.author === "Kine" ? " author-kona" : ""}">
+              <button class="message-delete" onclick="deleteMessage('${m.id}')">✕</button>
+              <div class="message-card-text">${escHtml(m.text)}</div>
+              <div class="message-card-meta">
+                <span class="message-card-author">${escHtml(m.author)}</span>
+                <span class="message-card-time">${fmtTime(m.timestamp)}</span>
+              </div>
+            </div>`,
+            )
+            .join("");
+        });
+      }
+
+      // ── Handleliste ──────────────────────────────────────────────────────────────
+      function buildCatBar() {
+        const bar = document.getElementById("shop-cat-bar");
+        bar.innerHTML = SHOP_CATEGORIES.map(
+          (c) => `
+          <button class="shop-cat-chip${selectedCategory === c.id ? " active" : ""}"
+            onclick="selectCat('${c.id}')">${c.label}</button>`,
+        ).join("");
+      }
+
+      window.selectCat = function (id) {
+        selectedCategory = id;
+        buildCatBar();
+      };
+
+      window.addShopItem = async function () {
+        const input = document.getElementById("shop-input");
+        const qtyInput = document.getElementById("shop-qty");
+        const text = input.value.trim();
+        if (!text) return;
+        const qty = parseInt(qtyInput.value) || 1;
+        input.value = "";
+        qtyInput.value = "1";
+        input.focus();
+        const { updateDoc: upd } =
+          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        const existing = activeShopItems.get(text.toLowerCase());
+        if (existing) {
+          await upd(doc(db, "shopping", existing.id), { qty: existing.qty + qty });
+          return;
+        }
+        const promises = [
+          addDoc(collection(db, "shopping"), {
+            text,
+            qty,
+            category: selectedCategory,
+            done: false,
+            timestamp: serverTimestamp(),
+          }),
+        ];
+        if (saveAsQuickPick) {
+          const existing = quickPicks.find(
+            (q) => q.text.toLowerCase() === text.toLowerCase(),
+          );
+          const { updateDoc: upd } =
+            await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+          if (existing) {
+            promises.push(
+              upd(doc(db, "quickpicks", existing.id), {
+                count: existing.count + 1,
+                lastAdded: serverTimestamp(),
+              }),
+            );
+          } else {
+            promises.push(
+              addDoc(collection(db, "quickpicks"), {
+                text,
+                category: selectedCategory,
+                count: 1,
+                lastAdded: serverTimestamp(),
+              }),
+            );
+          }
+        }
+        await Promise.all(promises);
+      };
+
+      window.toggleShopItem = async function (id, done) {
+        const ref = doc(db, "shopping", id);
+        const { updateDoc } =
+          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        await updateDoc(ref, { done: !done });
+      };
+
+      window.deleteShopItem = async function (id) {
+        await deleteDoc(doc(db, "shopping", id));
+      };
+
+      window.clearDoneItems = async function () {
+        const { getDocs } =
+          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        const q = query(collection(db, "shopping"), where("done", "==", true));
+        const snap = await getDocs(q);
+        const batch = writeBatch(db);
+        snap.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      };
+
+      function subscribeShoppingList() {
+        if (unsubShopping) return;
+        // Single orderBy avoids requiring a composite Firestore index — sort client-side instead
+        const q = query(
+          collection(db, "shopping"),
+          orderBy("timestamp", "asc"),
+        );
+        unsubShopping = onSnapshot(q, (snap) => {
+          let items = [];
+          snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+          // Track active (undone) items for quick-pick filtering and dedup
+          const undone = items.filter((i) => !i.done);
+          activeShopTexts = new Set(undone.map((i) => i.text.toLowerCase()));
+          activeShopItems = new Map(undone.map((i) => [i.text.toLowerCase(), { id: i.id, qty: i.qty || 1 }]));
+          renderQuickPicks();
+          // Sort: undone first, done last
+          items.sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
+          const list = document.getElementById("shop-list");
+          const doneCount = items.filter((i) => i.done).length;
+          if (items.length === 0) {
+            list.innerHTML =
+              '<div class="empty-state"><div class="empty-icon">🛒</div>Listen er tom!</div>';
+            return;
+          }
+          // Group by category
+          const catOrder = SHOP_CATEGORIES.map((c) => c.id);
+          const groups = {};
+          items.forEach((item) => {
+            const cat = item.category || "annet";
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(item);
+          });
+          const sortedCats = Object.keys(groups).sort(
+            (a, b) => catOrder.indexOf(a) - catOrder.indexOf(b),
+          );
+
+          const renderItem = (item, catId) => `
+            <div class="shop-item${item.done ? " done" : ""}" data-id="${item.id}" data-qty="${item.qty || 1}" data-cat="${catId}">
+              <span class="shop-drag-handle">⠿</span>
+              <div class="shop-checkbox" onclick="toggleShopItem('${item.id}', ${item.done})">
+                <span class="shop-checkbox-tick">✓</span>
+              </div>
+              <span class="shop-item-text">${escHtml(item.text)}</span>
+              ${item.qty && item.qty > 1 ? `<span class="shop-qty-badge">×${item.qty}</span>` : ""}
+              <button class="shop-delete" onclick="deleteShopItem('${item.id}')">✕</button>
+            </div>`;
+
+          list.innerHTML =
+            sortedCats
+              .map((catId) => {
+                const catLabel =
+                  SHOP_CATEGORIES.find((c) => c.id === catId)?.label ?? catId;
+                return (
+                  `<div class="shop-group" data-cat="${catId}"><div class="shop-group-label">${catLabel}</div>` +
+                  groups[catId].map(item => renderItem(item, catId)).join("") +
+                  `</div>`
+                );
+              })
+              .join("") +
+            (doneCount > 0
+              ? `<button class="shop-clear-btn" onclick="clearDoneItems()">Fjern ${doneCount} avkryssede</button>`
+              : "");
+
+          // Attach long-press and drag-handle listeners to each item
+          list.querySelectorAll(".shop-item").forEach((el) => {
+            const id = el.dataset.id;
+            const qty = parseInt(el.dataset.qty) || 1;
+            let pressTimer = null;
+            const start = () => {
+              pressTimer = setTimeout(() => {
+                pressTimer = null;
+                openItemQtyModal(id, qty, el.dataset.cat);
+              }, 500);
+            };
+            const end = () => {
+              if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+            };
+            el.addEventListener("touchstart", start, { passive: true });
+            el.addEventListener("touchend", end);
+            el.addEventListener("touchmove", end, { passive: true });
+            el.addEventListener("mousedown", start);
+            el.addEventListener("mouseup", end);
+            el.addEventListener("mouseleave", end);
+
+            // Drag handle
+            const handle = el.querySelector(".shop-drag-handle");
+            if (!handle) return;
+            const attachDrag = (getX, getY, moveEvent, endEvent, opts = {}) => {
+              handle.addEventListener(moveEvent === "touchmove" ? "touchstart" : "mousedown", e => {
+                e.stopPropagation();
+                end(); // cancel long-press
+                const label = el.querySelector(".shop-item-text")?.textContent ?? "";
+                const origCat = el.dataset.cat;
+                let moved = false;
+                const onMove = ev => {
+                  const x = getX(ev), y = getY(ev);
+                  if (!moved) { moved = true; startShopDrag(id, origCat, x, y, label, el); }
+                  moveShopGhost(x, y);
+                  const g = document.elementFromPoint(x, y)?.closest(".shop-group");
+                  document.querySelectorAll(".shop-group.shop-drop-target").forEach(n => n.classList.remove("shop-drop-target"));
+                  if (g) g.classList.add("shop-drop-target");
+                  ev.preventDefault();
+                };
+                const onEnd = ev => {
+                  document.removeEventListener(moveEvent, onMove);
+                  document.removeEventListener(endEvent, onEnd);
+                  if (moved) endShopDrag(getX(ev), getY(ev));
+                };
+                document.addEventListener(moveEvent, onMove, { passive: false });
+                document.addEventListener(endEvent, onEnd);
+              }, opts);
+            };
+            attachDrag(e => e.changedTouches[0].clientX, e => e.changedTouches[0].clientY, "touchmove", "touchend", { passive: true });
+            attachDrag(e => e.clientX, e => e.clientY, "mousemove", "mouseup");
+          });
+        });
+      }
+
+      // ── Utils ────────────────────────────────────────────────────────────────────
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      // ── Boot ────────────────────────────────────────────────────────────────────
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("./sw.js");
+      }
+
+      if (!FIREBASE_CONFIG.apiKey) {
+        document.getElementById("today-dinner-text").textContent =
+          "Fyll inn Firebase-config";
+      } else {
+        initHome();
+      }
+    </script>
+  </body>
+</html>
