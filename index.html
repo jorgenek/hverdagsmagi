@@ -14,6 +14,8 @@
     />
     <title>Hverdagsmagi ✨</title>
     <link rel="manifest" href="./manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <script src="./firebase-config.js"></script>
     <style>
       *,
       *::before,
@@ -121,6 +123,51 @@
         justify-content: center;
         font-size: 1.3rem;
         cursor: pointer;
+      }
+      .header-actions { display: flex; gap: 8px; }
+
+      .suggestion-types {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+      .suggestion-type-btn {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 99px;
+        padding: 8px 16px;
+        color: var(--text);
+        font-size: 0.9rem;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .suggestion-type-btn:active { background: var(--surface); }
+      .suggestion-result {
+        background: var(--surface2);
+        border-radius: var(--radius-sm);
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      .suggestion-result-name {
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: var(--text);
+      }
+      .suggestion-result-link {
+        font-size: 0.82rem;
+        color: var(--blue);
+        text-decoration: none;
+        display: block;
+        margin-bottom: 12px;
+      }
+      .suggestion-error {
+        color: var(--muted);
+        font-size: 0.9rem;
+        text-align: center;
+        padding: 20px 0;
       }
 
       /* Scroll */
@@ -1009,7 +1056,10 @@
         <div class="header">
           <button class="back-btn" onclick="showView('view-home')">←</button>
           <h1>🍽️ Middagsplan</h1>
-          <button class="header-action" onclick="openMealForm()" title="Legg til måltid">+</button>
+          <div class="header-actions">
+            <button class="header-action" onclick="openMealSuggestion()" title="Middagsforslag" style="background:var(--purple);font-size:1rem">💡</button>
+            <button class="header-action" onclick="openMealForm()" title="Legg til måltid">+</button>
+          </div>
         </div>
         <div class="week-nav">
           <button class="week-nav-btn" onclick="changeWeek(-1)">‹</button>
@@ -1133,6 +1183,16 @@
       >
         <span class="nav-icon">🛒</span>Handel
       </button>
+    </div>
+
+    <!-- Meal suggestion modal -->
+    <div class="sheet-overlay hidden" id="meal-suggestion-modal" onclick="if(event.target===this)closeMealSuggestion()">
+      <div class="sheet" style="max-height:85vh;overflow-y:auto">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">💡 Middagsforslag</div>
+        <div id="suggestion-result-area" style="margin-bottom:14px"></div>
+        <button class="sheet-btn sheet-btn-cancel" style="width:100%" onclick="closeMealSuggestion()">Lukk</button>
+      </div>
     </div>
 
     <!-- Bottom sheet: edit dinner -->
@@ -1308,16 +1368,7 @@
         deleteField,
       } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-      // ── Firebase config ──────────────────────────────────────────────────────────
-      const FIREBASE_CONFIG = {
-        apiKey: "AIzaSyCjaE000v91mEBrtovdVpPsd3-FHGBOJKE",
-        authDomain: "hverdagskaos-3212.firebaseapp.com",
-        projectId: "hverdagskaos-3212",
-        storageBucket: "hverdagskaos-3212.firebasestorage.app",
-        messagingSenderId: "86514036178",
-        appId: "1:86514036178:web:dda8bcd92a0bf5447bec0b",
-      };
-      // ────────────────────────────────────────────────────────────────────────────
+      const FIREBASE_CONFIG = window.FIREBASE_CONFIG;
 
       const app = initializeApp(FIREBASE_CONFIG);
       const db = getFirestore(app);
@@ -2305,6 +2356,111 @@
           });
         });
       }
+
+      // ── Meal suggestion ──────────────────────────────────────────────────────────
+      window.openMealSuggestion = function() {
+        document.getElementById('suggestion-result-area').innerHTML =
+          '<div class="loading-state" style="padding:32px 0"><div class="spinner"></div></div>';
+        document.getElementById('meal-suggestion-modal').classList.remove('hidden');
+        fetchAndShowSuggestion();
+      };
+
+      window.closeMealSuggestion = function() {
+        document.getElementById('meal-suggestion-modal').classList.add('hidden');
+      };
+
+      window.fetchAndShowSuggestion = async function() {
+        const area = document.getElementById('suggestion-result-area');
+        area.innerHTML = '<div class="loading-state" style="padding:32px 0"><div class="spinner"></div></div>';
+        try {
+          const recipe = await fetchGodt();
+          area.innerHTML = `
+            <div class="suggestion-result">
+              ${recipe.image ? `<img src="${recipe.image}" style="width:100%;border-radius:var(--radius-sm);margin-bottom:12px;object-fit:cover;height:180px;display:block">` : ''}
+              <div class="suggestion-result-name">${escHtml(recipe.name)}</div>
+              <div style="display:flex;gap:14px;font-size:0.82rem;color:var(--muted);margin:8px 0 12px;flex-wrap:wrap">
+                ${recipe.time ? `<span>⏱ ${escHtml(recipe.time)}</span>` : ''}
+                ${recipe.difficulty ? `<span>📊 ${escHtml(recipe.difficulty)}</span>` : ''}
+              </div>
+              <a class="suggestion-result-link" href="${escHtml(recipe.url)}" target="_blank" rel="noopener">Se oppskrift på godt.no ↗</a>
+            </div>
+            <button class="sheet-btn sheet-btn-save" style="width:100%;margin-bottom:10px" onclick="fetchAndShowSuggestion()">🔀 Nytt forslag</button>`;
+        } catch(e) {
+          area.innerHTML = `<div class="suggestion-error">${escHtml(e.message)}<br><br>
+            <button class="sheet-btn sheet-btn-cancel" style="margin:0 auto" onclick="fetchAndShowSuggestion()">Prøv igjen</button></div>`;
+        }
+      };
+
+      async function fetchGodt() {
+        const page = Math.ceil(Math.random() * 8);
+        const target = `https://www.godt.no/oppskrifter/middag?page=${page}`;
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(target)}`;
+        let html;
+        try {
+          const r = await fetch(proxyUrl);
+          if (!r.ok) throw new Error(`proxy status ${r.status}`);
+          const d = await r.json();
+          html = d.contents;
+        } catch(e) {
+          throw new Error('Kunne ikke hente oppskrifter. Prøv igjen.');
+        }
+        if (!html || html.length < 500) throw new Error('Tom respons fra godt.no');
+
+        // Parse __NEXT_DATA__ if present
+        const ndMatch = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+        if (ndMatch) {
+          try {
+            const nd = JSON.parse(ndMatch[1]);
+            const recipes = extractGodtRecipes(nd);
+            if (recipes.length) return recipes[Math.floor(Math.random() * recipes.length)];
+          } catch(e) { /* fall through to og-tag parsing */ }
+        }
+
+        // Fallback: parse Open Graph / JSON-LD recipe cards from listing HTML
+        const recipes = [];
+        const linkRe = /href="(https:\/\/www\.godt\.no\/oppskrifter\/[^"]+)"/g;
+        const imgRe  = /<img[^>]+src="([^"]+godt[^"]*\.(jpg|jpeg|png|webp))[^"]*"[^>]*alt="([^"]+)"/gi;
+        const seen   = new Set();
+        let m;
+        while ((m = linkRe.exec(html)) !== null) {
+          const url = m[1];
+          if (!seen.has(url) && !url.includes('?') && url.split('/').length >= 6) {
+            seen.add(url);
+            const slug = url.split('/').pop().replace(/-/g, ' ');
+            const name = slug.charAt(0).toUpperCase() + slug.slice(1);
+            recipes.push({ name, url, image: null, time: null, difficulty: null });
+          }
+        }
+        if (!recipes.length) throw new Error('Ingen oppskrifter funnet på godt.no — prøv igjen');
+        return recipes[Math.floor(Math.random() * recipes.length)];
+      }
+
+      function extractGodtRecipes(obj, depth = 0) {
+        if (depth > 12 || !obj || typeof obj !== 'object') return [];
+        if (Array.isArray(obj)) {
+          if (obj.length > 0 && typeof obj[0] === 'object') {
+            const f = obj[0];
+            const hasName = f.title ?? f.name ?? f.heading;
+            const hasUrl  = f.url ?? f.slug ?? f.href ?? f.friendlyUrl;
+            if (hasName && hasUrl) {
+              return obj.map(r => {
+                const slug = r.url ?? r.slug ?? r.href ?? r.friendlyUrl ?? '';
+                const imgUrl = r.mainImage?.url ?? r.image?.url ?? r.imageUrl ?? r.image ?? null;
+                return {
+                  name:       r.title ?? r.name ?? r.heading ?? '',
+                  url:        slug.startsWith('http') ? slug : 'https://www.godt.no' + slug,
+                  image:      imgUrl,
+                  time:       r.totalTime ?? r.timeTotal ?? r.cookTime ?? null,
+                  difficulty: r.difficulty ?? r.difficultyText ?? null,
+                };
+              }).filter(r => r.name && r.url.includes('godt.no'));
+            }
+          }
+          return obj.flatMap(i => extractGodtRecipes(i, depth + 1));
+        }
+        return Object.values(obj).flatMap(v => extractGodtRecipes(v, depth + 1));
+      }
+
 
       // ── Utils ────────────────────────────────────────────────────────────────────
       function escHtml(str) {
