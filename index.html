@@ -1919,6 +1919,7 @@
         editingDate = date;
         document.getElementById("sheet-day-label").textContent = label;
         document.getElementById("sheet-input").value = dinners[date] || "";
+        document.querySelector(".sheet-btn-clear").style.display = dinners[date] ? "" : "none";
 
         const sel = document.getElementById("sheet-meal-select");
         sel.innerHTML = '<option value="">— Velg lagret måltid —</option>' +
