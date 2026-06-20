@@ -1924,8 +1924,18 @@
         sel.innerHTML = '<option value="">— Velg lagret måltid —</option>' +
           meals.map(m => `<option value="${escHtml(m.name)}">${escHtml(m.name)}</option>`).join('');
         sel.value = dinners[date] || "";
-        sel.onchange = () => {
-          if (sel.value) document.getElementById("sheet-input").value = sel.value;
+        sel.onchange = async () => {
+          if (!sel.value) return;
+          const meal = meals.find(m => m.name === sel.value);
+          document.getElementById("dinner-sheet").classList.add("hidden");
+          const savedDate = editingDate;
+          editingDate = null;
+          const { updateDoc: upd } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+          await setDoc(doc(db, "dinners", savedDate), { meal: sel.value, mealId: meal?.id ?? null });
+          if (meal) {
+            await upd(doc(db, "meals", meal.id), { count: (meal.count ?? 0) + 1 });
+            openMealShopModal(meal);
+          }
         };
 
         document.getElementById("dinner-sheet").classList.remove("hidden");
