@@ -775,12 +775,24 @@
       }
       .meals-library-row {
         display: flex;
+        flex-wrap: wrap;
         gap: 8px;
-        padding: 0 14px;
-        overflow-x: auto;
-        scrollbar-width: none;
+        padding: 0 14px 4px;
+        max-height: 180px;
+        overflow-y: auto;
       }
-      .meals-library-row::-webkit-scrollbar { display: none; }
+      .dinner-row.selected {
+        border-color: var(--blue);
+        background: rgba(59,130,246,0.10);
+      }
+      .meals-library-label.picking {
+        color: var(--blue);
+      }
+      .meal-chip.tappable:active {
+        background: var(--blue);
+        color: #fff;
+        border-color: var(--blue);
+      }
       .meal-chip {
         flex-shrink: 0;
         background: var(--surface2);
@@ -1021,7 +1033,7 @@
           </div>
         </div>
         <div class="week-nav">
-          <button class="week-nav-btn" onclick="changeWeek(-1)">‹</button>
+          <button class="week-nav-btn" id="week-nav-prev" onclick="changeWeek(-1)">‹</button>
           <div class="week-nav-title" id="week-label"></div>
           <button class="week-nav-btn" onclick="changeWeek(1)">›</button>
         </div>
@@ -1029,7 +1041,7 @@
           <div class="loading-state"><div class="spinner"></div></div>
         </div>
         <div class="meals-library" id="meals-library" style="display:none">
-          <div class="meals-library-label">Dra et måltid inn på en dag</div>
+          <div class="meals-library-label">Trykk på en dag, eller dra et måltid dit</div>
           <div class="meals-library-row" id="meals-library-row"></div>
         </div>
       </div>
@@ -1155,7 +1167,10 @@
         <div class="sheet-handle"></div>
         <div class="sheet-title">Middag</div>
         <div class="sheet-day-label" id="sheet-day-label"></div>
-        <input class="sheet-input" id="sheet-input" placeholder="Hva er til middag?" />
+        <select class="sheet-input" id="sheet-meal-select" style="margin-bottom:8px">
+          <option value="">— Velg lagret måltid —</option>
+        </select>
+        <input class="sheet-input" id="sheet-input" placeholder="Eller skriv inn manuelt" />
         <div class="sheet-actions">
           <button
             class="sheet-btn sheet-btn-cancel"
@@ -1305,6 +1320,7 @@
         collection,
         doc,
         getDoc,
+        getDocs,
         setDoc,
         deleteDoc,
         addDoc,
@@ -1313,6 +1329,7 @@
         orderBy,
         limit,
         where,
+        documentId,
         serverTimestamp,
         writeBatch,
         deleteField,
@@ -1519,8 +1536,13 @@
       }
 
       // ── Middager ────────────────────────────────────────────────────────────────
+      const MIN_WEEK_OFFSET = -4;
+
       window.changeWeek = function (delta) {
-        weekOffset += delta;
+        weekOffset = Math.max(MIN_WEEK_OFFSET, weekOffset + delta);
+        selectedDay = null;
+        const label = document.querySelector('.meals-library-label');
+        if (label) { label.textContent = 'Trykk på en dag, eller dra et måltid dit'; label.classList.remove('picking'); }
         renderWeek();
       };
 
@@ -1556,6 +1578,8 @@
                 ? "Forrige uke"
                 : `${fmtDate(mon)} – ${fmtDate(sun)}`;
         document.getElementById("week-label").textContent = label;
+        const prevBtn = document.getElementById("week-nav-prev");
+        if (prevBtn) prevBtn.disabled = weekOffset <= MIN_WEEK_OFFSET;
         subscribeWeekDinners();
       }
 
@@ -1568,18 +1592,50 @@
             const iso = toISO(d);
             const meal = dinners[iso];
             const isToday = iso === todayISO;
+            const isSelected = iso === selectedDay;
             return `
-            <div class="dinner-row${isToday ? " today" : ""}" data-date="${iso}" onclick="openDinnerSheet('${iso}', '${DAY_NAMES[i]} ${fmtDate(d)}')">
+            <div class="dinner-row${isToday ? " today" : ""}${isSelected ? " selected" : ""}" data-date="${iso}" onclick="selectDay('${iso}', '${DAY_NAMES[i]}')">
               <div class="dinner-day">
                 <div class="dinner-day-name">${DAY_NAMES[i]}</div>
                 <div class="dinner-day-date">${fmtDate(d)}</div>
               </div>
               ${isToday ? '<span class="dinner-today-badge">I dag</span>' : ""}
               <div class="dinner-meal${meal ? "" : " empty"}">${meal ? escHtml(meal) : "Ikke planlagt"}</div>
-              <span style="color:var(--muted);margin-left:auto">✏️</span>
+              <span onclick="event.stopPropagation(); openDinnerSheet('${iso}', '${DAY_NAMES[i]} ${fmtDate(d)}')" style="color:var(--muted);margin-left:auto;padding:4px 0 4px 8px">✏️</span>
             </div>`;
           })
           .join("");
+      }
+
+      let selectedDay = null;
+
+      window.selectDay = function(iso, dayName) {
+        selectedDay = selectedDay === iso ? null : iso;
+        renderDinnerRows();
+        const label = document.querySelector('.meals-library-label');
+        if (!label) return;
+        if (selectedDay) {
+          label.textContent = `Velg måltid for ${dayName}`;
+          label.classList.add('picking');
+        } else {
+          label.textContent = 'Dra et måltid inn på en dag, eller trykk på en dag først';
+          label.classList.remove('picking');
+        }
+      };
+
+      async function assignMealToDay(mealId) {
+        if (!selectedDay) return;
+        const meal = meals.find(m => m.id === mealId);
+        if (!meal) return;
+        const date = selectedDay;
+        selectedDay = null;
+        renderDinnerRows();
+        const label = document.querySelector('.meals-library-label');
+        if (label) { label.textContent = 'Dra et måltid inn på en dag, eller trykk på en dag først'; label.classList.remove('picking'); }
+        const { updateDoc: upd } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+        await setDoc(doc(db, 'dinners', date), { meal: meal.name, mealId: meal.id });
+        await upd(doc(db, 'meals', meal.id), { count: (meal.count ?? 0) + 1 });
+        openMealShopModal(meal);
       }
 
       // ── Meals library ────────────────────────────────────────────────────────────
@@ -1661,10 +1717,9 @@
           const startLP = () => { longPressTimer = setTimeout(() => { longPressTimer = null; openMealForm(id); }, 600); };
           const cancelLP = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } };
 
-          // Touch drag
+          // Touch drag / tap
           chip.addEventListener('touchstart', e => {
             startLP();
-            const touch = e.touches[0];
             let moved = false;
             const onMove = ev => {
               if (!moved) { cancelLP(); moved = true; startDrag(id, chip, ev.touches[0].clientX, ev.touches[0].clientY); }
@@ -1676,13 +1731,17 @@
               cancelLP();
               document.removeEventListener('touchmove', onMove);
               document.removeEventListener('touchend', onEnd);
-              if (moved) endDrag(ev.changedTouches[0].clientX, ev.changedTouches[0].clientY);
+              if (moved) {
+                endDrag(ev.changedTouches[0].clientX, ev.changedTouches[0].clientY);
+              } else if (selectedDay) {
+                assignMealToDay(id);
+              }
             };
             document.addEventListener('touchmove', onMove, { passive: false });
             document.addEventListener('touchend', onEnd);
           }, { passive: true });
 
-          // Mouse drag (desktop)
+          // Mouse drag / click (desktop)
           chip.addEventListener('mousedown', e => {
             startLP();
             let moved = false;
@@ -1695,7 +1754,11 @@
               cancelLP();
               document.removeEventListener('mousemove', onMove);
               document.removeEventListener('mouseup', onUp);
-              if (moved) endDrag(ev.clientX, ev.clientY);
+              if (moved) {
+                endDrag(ev.clientX, ev.clientY);
+              } else if (selectedDay) {
+                assignMealToDay(id);
+              }
             };
             document.addEventListener('mousemove', onMove);
             document.addEventListener('mouseup', onUp);
@@ -1856,6 +1919,15 @@
         editingDate = date;
         document.getElementById("sheet-day-label").textContent = label;
         document.getElementById("sheet-input").value = dinners[date] || "";
+
+        const sel = document.getElementById("sheet-meal-select");
+        sel.innerHTML = '<option value="">— Velg lagret måltid —</option>' +
+          meals.map(m => `<option value="${escHtml(m.name)}">${escHtml(m.name)}</option>`).join('');
+        sel.value = dinners[date] || "";
+        sel.onchange = () => {
+          if (sel.value) document.getElementById("sheet-input").value = sel.value;
+        };
+
         document.getElementById("dinner-sheet").classList.remove("hidden");
         setTimeout(() => document.getElementById("sheet-input").focus(), 100);
       };
@@ -2318,6 +2390,16 @@
           .replace(/"/g, "&quot;");
       }
 
+      async function cleanupOldDinners() {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 35);
+        const cutoffISO = toISO(cutoff);
+        try {
+          const snap = await getDocs(query(collection(db, 'dinners'), where(documentId(), '<', cutoffISO)));
+          snap.forEach(d => deleteDoc(d.ref));
+        } catch(e) { /* silent — not critical */ }
+      }
+
       // ── Boot ────────────────────────────────────────────────────────────────────
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("./sw.js");
@@ -2328,6 +2410,7 @@
           "Fyll inn Firebase-config";
       } else {
         initHome();
+        cleanupOldDinners();
       }
     </script>
   </body>
