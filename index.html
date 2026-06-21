@@ -731,6 +731,159 @@
         background: var(--surface2);
       }
 
+      .shop-groups-section {
+        border-bottom: 1px solid var(--border);
+        padding: 8px 0 10px;
+        flex-shrink: 0;
+      }
+      .shop-groups-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px 6px;
+      }
+      .shop-groups-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+      .shop-groups-edit-btn {
+        background: none;
+        border: none;
+        color: var(--blue);
+        font-size: 0.78rem;
+        cursor: pointer;
+        padding: 0;
+      }
+      .shop-groups-row {
+        display: flex;
+        gap: 8px;
+        padding: 0 12px;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .shop-groups-row::-webkit-scrollbar { display: none; }
+      .shop-group-chip {
+        flex-shrink: 0;
+        padding: 6px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--blue);
+        background: var(--surface);
+        color: var(--blue);
+        font-size: 0.85rem;
+        cursor: pointer;
+        user-select: none;
+        -webkit-user-select: none;
+        white-space: nowrap;
+        font-weight: 600;
+        transition: background 0.12s;
+      }
+      .shop-group-chip:active { background: color-mix(in srgb, var(--blue) 12%, transparent); }
+
+      /* Group picker modal items */
+      .group-pick-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+      }
+      .group-pick-item:last-child { border-bottom: none; }
+      .group-pick-cb {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 2px solid var(--border);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        transition: background 0.12s, border-color 0.12s;
+      }
+      .group-pick-item.checked .group-pick-cb {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: #fff;
+      }
+      .group-pick-text { flex: 1; font-size: 0.95rem; }
+      .group-pick-qty-input {
+        width: 52px;
+        padding: 4px 6px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      /* Group management modal */
+      .sg-group-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .sg-group-row:last-child { border-bottom: none; }
+      .sg-group-name { flex: 1; font-size: 0.95rem; font-weight: 600; }
+      .sg-group-sub { font-size: 0.78rem; color: var(--muted); }
+      .sg-btn {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 0.82rem;
+        color: var(--text);
+      }
+      .sg-item-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+      .sg-item-text-input {
+        flex: 1;
+        padding: 7px 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        font-size: 0.9rem;
+      }
+      .sg-item-qty-input {
+        width: 52px;
+        padding: 7px 6px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        font-size: 0.9rem;
+        text-align: center;
+      }
+      .sg-item-cat-select {
+        padding: 7px 6px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        color: var(--text);
+        font-size: 0.82rem;
+      }
+      .sg-remove-btn {
+        background: none;
+        border: none;
+        color: var(--red);
+        font-size: 1.1rem;
+        cursor: pointer;
+        padding: 0 2px;
+        line-height: 1;
+      }
+
       .shop-group-label {
         font-size: 0.72rem;
         font-weight: 700;
@@ -774,8 +927,8 @@
         padding: 0 14px 6px;
       }
       .meals-library-row {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: 8px;
         padding: 0 14px 4px;
         max-height: 180px;
@@ -794,18 +947,19 @@
         border-color: var(--blue);
       }
       .meal-chip {
-        flex-shrink: 0;
+        min-width: 0;
         background: var(--surface2);
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
-        padding: 8px 14px;
+        padding: 6px 10px;
         cursor: grab;
         user-select: none;
         -webkit-user-select: none;
         touch-action: none;
+        box-sizing: border-box;
       }
-      .meal-chip-name { font-size: 0.9rem; font-weight: 600; }
-      .meal-chip-ing { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+      .meal-chip-name { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .meal-chip-ing { font-size: 0.68rem; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .meal-chip.dragging { opacity: 0.4; }
       .meal-drag-ghost {
         position: fixed;
@@ -1110,6 +1264,13 @@
           <button class="shop-add-btn" onclick="addShopItem()">+</button>
         </div>
         <div class="shop-cat-bar" id="shop-cat-bar"></div>
+        <div class="shop-groups-section" id="shop-groups-section" style="display:none">
+          <div class="shop-groups-header">
+            <div class="shop-groups-label">Hurtiggrupper</div>
+            <button class="shop-groups-edit-btn" onclick="openGroupsManager()">Rediger</button>
+          </div>
+          <div class="shop-groups-row" id="shop-groups-row"></div>
+        </div>
         <div
           class="shop-quickpicks-section"
           id="shop-quickpicks-section"
@@ -1194,7 +1355,7 @@
         <div class="sheet-handle"></div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
           <div class="sheet-title" style="margin-bottom:0;flex:1" id="meal-form-title">Nytt måltid</div>
-          <button id="meal-form-delete-btn" onclick="deleteMeal()" style="display:none;background:var(--red);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer">🗑</button>
+          <button id="meal-form-delete-btn" onclick="deleteMeal()" style="display:none;background:var(--red);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer;align-items:center;justify-content:center;flex-shrink:0">🗑</button>
         </div>
         <div style="font-size:0.78rem;color:var(--muted);margin-bottom:4px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em">Navn</div>
         <input class="sheet-input" id="meal-name-input" placeholder="F.eks. Taco, Pasta carbonara…" style="margin-bottom:14px" />
@@ -1233,6 +1394,8 @@
       <div class="sheet">
         <div class="sheet-handle"></div>
         <div class="sheet-title">Endre vare</div>
+        <div style="font-size:0.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Navn</div>
+        <input class="sheet-input" id="item-name-modal-input" type="text" style="margin-bottom:14px" />
         <div style="font-size:0.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px">Antall</div>
         <input
           class="sheet-input"
@@ -1292,6 +1455,11 @@
             🗑
           </button>
         </div>
+        <div style="font-size:0.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-top:12px;margin-bottom:6px">Navn</div>
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <input class="sheet-input" id="qp-modal-name" type="text" style="margin-bottom:0;flex:1" />
+          <button onclick="saveQpName()" style="background:var(--blue);border:none;color:#fff;padding:0 14px;border-radius:var(--radius-sm);font-size:0.85rem;cursor:pointer;font-weight:600;white-space:nowrap">Lagre</button>
+        </div>
         <div class="sheet-day-label">Hvor mange vil du legge til?</div>
         <input
           class="sheet-input"
@@ -1309,6 +1477,60 @@
           <button class="sheet-btn sheet-btn-save" onclick="confirmQpModal()">
             Legg til
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group item picker modal -->
+    <div class="sheet-overlay hidden" id="group-pick-modal" onclick="if(event.target===this)closeGroupPickModal()">
+      <div class="sheet" style="max-height:85vh;overflow-y:auto">
+        <div class="sheet-handle"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <div class="sheet-title" id="group-pick-title" style="flex:1;margin-bottom:0"></div>
+        </div>
+        <div id="group-pick-list" style="margin-bottom:16px"></div>
+        <div class="sheet-actions">
+          <button class="sheet-btn sheet-btn-cancel" onclick="closeGroupPickModal()">Avbryt</button>
+          <button class="sheet-btn sheet-btn-save" onclick="confirmGroupPick()">Legg til</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group manager modal -->
+    <div class="sheet-overlay hidden" id="groups-manager-modal" onclick="if(event.target===this)closeGroupsManager()">
+      <div class="sheet" style="max-height:90vh;overflow-y:auto">
+        <div class="sheet-handle"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <div class="sheet-title" style="flex:1;margin-bottom:0">Hurtiggrupper</div>
+          <button onclick="openNewGroupForm()" style="background:var(--blue);border:none;color:#fff;padding:6px 14px;border-radius:20px;font-size:0.85rem;cursor:pointer;font-weight:600">+ Ny gruppe</button>
+        </div>
+        <div id="groups-manager-list" style="margin-bottom:8px"></div>
+        <div class="sheet-actions" style="margin-top:8px">
+          <button class="sheet-btn sheet-btn-cancel" onclick="closeGroupsManager()">Lukk</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group edit/create form modal -->
+    <div class="sheet-overlay hidden" id="group-form-modal" onclick="if(event.target===this)closeGroupForm()">
+      <div class="sheet" style="max-height:90vh;overflow-y:auto">
+        <div class="sheet-handle"></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+          <div class="sheet-title" id="group-form-title" style="flex:1;margin-bottom:0">Ny gruppe</div>
+          <button id="group-form-delete-btn" onclick="deleteShopGroup()" style="display:none;background:var(--red);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:1rem;cursor:pointer;align-items:center;justify-content:center">🗑</button>
+        </div>
+        <div style="font-size:0.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">Navn</div>
+        <input class="sheet-input" id="sg-name-input" placeholder="F.eks. Taco, Dipp, Frokost…" style="margin-bottom:14px" />
+        <div style="font-size:0.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px">Emoji</div>
+        <input class="sheet-input" id="sg-emoji-input" placeholder="🧄" style="margin-bottom:14px;width:80px" />
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:0.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.07em">Varer</div>
+          <button onclick="addSgItemRow()" style="background:none;border:none;color:var(--blue);font-size:0.85rem;cursor:pointer">+ Legg til</button>
+        </div>
+        <div id="sg-items-list" style="margin-bottom:14px"></div>
+        <div class="sheet-actions">
+          <button class="sheet-btn sheet-btn-cancel" onclick="closeGroupForm()">Avbryt</button>
+          <button class="sheet-btn sheet-btn-save" onclick="saveShopGroup()">Lagre</button>
         </div>
       </div>
     </div>
@@ -1370,6 +1592,9 @@
       let activeShopTexts = new Set(); // text (lowercase) of undone items — for quickpick filtering
       let activeShopItems = new Map(); // text.toLowerCase() → { id, qty } — for dedup on add
       let unsubQuickPicks = null;
+      let shopGroups = [];
+      let unsubShopGroups = null;
+      let pendingGroupId = null; // group being picked from
 
       // ── Date helpers ────────────────────────────────────────────────────────────
       function toISO(d) {
@@ -1467,6 +1692,7 @@
           buildCatBar();
           subscribeShoppingList();
           subscribeQuickPicks();
+          subscribeShopGroups();
         }
       };
 
@@ -1667,6 +1893,21 @@
 
       function moveShopGhost(x, y) {
         if (shopDragGhost) shopDragGhost.style.transform = `translate(${x - 60}px, ${y - 20}px)`;
+      }
+
+      let shopScrollRaf = null;
+      function startShopScroll(dir) {
+        if (shopScrollRaf) return;
+        const list = document.getElementById("shop-list");
+        const step = () => {
+          if (!shopDragId || !list) { shopScrollRaf = null; return; }
+          list.scrollTop += dir * 8;
+          shopScrollRaf = requestAnimationFrame(step);
+        };
+        shopScrollRaf = requestAnimationFrame(step);
+      }
+      function stopShopScroll() {
+        if (shopScrollRaf) { cancelAnimationFrame(shopScrollRaf); shopScrollRaf = null; }
       }
 
       async function endShopDrag(x, y) {
@@ -2067,14 +2308,16 @@
       function openQpModal(qp) {
         pendingQp = qp;
         document.getElementById("qp-modal-title").textContent = qp.text;
+        document.getElementById("qp-modal-name").value = qp.text;
         document.getElementById("qp-modal-qty").value = 1;
         document.getElementById("qp-modal").classList.remove("hidden");
       }
 
       let editingItemId = null;
 
-      function openItemQtyModal(id, currentQty, currentCat) {
+      function openItemQtyModal(id, currentQty, currentCat, currentName) {
         editingItemId = id;
+        document.getElementById("item-name-modal-input").value = currentName || "";
         document.getElementById("item-qty-modal-input").value = currentQty;
         const sel = document.getElementById("item-cat-modal-select");
         sel.innerHTML = SHOP_CATEGORIES.map(c =>
@@ -2090,6 +2333,7 @@
 
       window.confirmItemQtyModal = async function () {
         if (!editingItemId) return;
+        const newName = document.getElementById("item-name-modal-input").value.trim();
         const qty = parseInt(document.getElementById("item-qty-modal-input").value) || 1;
         const newCat = document.getElementById("item-cat-modal-select").value;
         const itemId = editingItemId;
@@ -2097,7 +2341,9 @@
         editingItemId = null;
         const { updateDoc: upd } =
           await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-        await upd(doc(db, "shopping", itemId), { qty, category: newCat });
+        const updates = { qty, category: newCat };
+        if (newName) updates.text = newName;
+        await upd(doc(db, "shopping", itemId), updates);
         // sync quickpick category if it exists
         const qp = quickPicks.find(q => {
           const shopItem = document.querySelector(`.shop-item[data-id="${itemId}"] .shop-item-text`);
@@ -2113,6 +2359,17 @@
         pendingQp = null;
       };
 
+      window.saveQpName = async function () {
+        if (!pendingQp) return;
+        const newName = document.getElementById("qp-modal-name").value.trim();
+        if (!newName || newName === pendingQp.text) return;
+        const { updateDoc: upd } =
+          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        await upd(doc(db, "quickpicks", pendingQp.id), { text: newName });
+        pendingQp = { ...pendingQp, text: newName };
+        document.getElementById("qp-modal-title").textContent = newName;
+      };
+
       window.deleteQuickPick = async function () {
         if (!pendingQp) return;
         document.getElementById("qp-modal").classList.add("hidden");
@@ -2122,11 +2379,224 @@
 
       window.confirmQpModal = async function () {
         if (!pendingQp) return;
-        const qty =
-          parseInt(document.getElementById("qp-modal-qty").value) || 1;
+        const newName = document.getElementById("qp-modal-name").value.trim();
+        const qty = parseInt(document.getElementById("qp-modal-qty").value) || 1;
         document.getElementById("qp-modal").classList.add("hidden");
+        const { updateDoc: upd } =
+          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        if (newName && newName !== pendingQp.text) {
+          await upd(doc(db, "quickpicks", pendingQp.id), { text: newName });
+          pendingQp = { ...pendingQp, text: newName };
+        }
         await addFromQuickPick(pendingQp, qty);
         pendingQp = null;
+      };
+
+      // ── Hurtiggrupper ───────────────────────────────────────────────────────────
+      function subscribeShopGroups() {
+        if (unsubShopGroups) return;
+        const q = query(collection(db, "shopgroups"), orderBy("name", "asc"));
+        unsubShopGroups = onSnapshot(q, (snap) => {
+          shopGroups = [];
+          snap.forEach((d) => shopGroups.push({ id: d.id, ...d.data() }));
+          renderShopGroups();
+          if (!document.getElementById("groups-manager-modal").classList.contains("hidden")) {
+            renderGroupsManagerList();
+          }
+        });
+      }
+
+      function renderShopGroups() {
+        const section = document.getElementById("shop-groups-section");
+        const row = document.getElementById("shop-groups-row");
+        if (!section || !row) return;
+        section.style.display = "block";
+        if (shopGroups.length === 0) {
+          row.innerHTML = `<div style="color:var(--muted);font-size:0.82rem;padding:0 2px">Ingen grupper ennå.</div>`;
+          return;
+        }
+        row.innerHTML = shopGroups.map(g =>
+          `<div class="shop-group-chip" data-id="${g.id}">${g.emoji ? g.emoji + " " : ""}${escHtml(g.name)}</div>`
+        ).join("");
+        row.querySelectorAll(".shop-group-chip").forEach(chip => {
+          chip.addEventListener("click", () => {
+            const g = shopGroups.find(x => x.id === chip.dataset.id);
+            if (g) openGroupPickModal(g);
+          });
+        });
+      }
+
+      function openGroupPickModal(group) {
+        pendingGroupId = group.id;
+        document.getElementById("group-pick-title").textContent =
+          (group.emoji ? group.emoji + " " : "") + group.name;
+        const list = document.getElementById("group-pick-list");
+        list.innerHTML = (group.items || []).map(item => {
+          const catLabel = SHOP_CATEGORIES.find(c => c.id === item.category)?.label ?? "📦 Annet";
+          return `
+            <div class="group-pick-item checked" data-item-id="${item.id}">
+              <div class="group-pick-cb">✓</div>
+              <div class="group-pick-text">
+                <div>${escHtml(item.text)}</div>
+                <div style="font-size:0.75rem;color:var(--muted)">${catLabel}</div>
+              </div>
+              <input class="group-pick-qty-input" type="number" min="1" max="99" value="${item.qty || 1}" onclick="event.stopPropagation()" />
+            </div>`;
+        }).join("");
+        list.querySelectorAll(".group-pick-item").forEach(el => {
+          el.addEventListener("click", (e) => {
+            if (e.target.tagName === "INPUT") return;
+            el.classList.toggle("checked");
+            el.querySelector(".group-pick-cb").textContent = el.classList.contains("checked") ? "✓" : "";
+          });
+        });
+        document.getElementById("group-pick-modal").classList.remove("hidden");
+      }
+
+      window.closeGroupPickModal = function () {
+        document.getElementById("group-pick-modal").classList.add("hidden");
+        pendingGroupId = null;
+      };
+
+      window.confirmGroupPick = async function () {
+        const group = shopGroups.find(g => g.id === pendingGroupId);
+        if (!group) return;
+        document.getElementById("group-pick-modal").classList.add("hidden");
+        pendingGroupId = null;
+        const { updateDoc: upd } =
+          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        const checkedEls = document.querySelectorAll("#group-pick-list .group-pick-item.checked");
+        const batch = writeBatch(db);
+        checkedEls.forEach(el => {
+          const itemId = el.dataset.itemId;
+          const item = (group.items || []).find(i => i.id === itemId);
+          if (!item) return;
+          const qty = parseInt(el.querySelector(".group-pick-qty-input").value) || 1;
+          const existing = activeShopItems.get(item.text.toLowerCase());
+          if (existing) {
+            batch.update(doc(db, "shopping", existing.id), { qty: existing.qty + qty });
+          } else {
+            const ref = doc(collection(db, "shopping"));
+            batch.set(ref, {
+              text: item.text,
+              qty,
+              category: item.category || "annet",
+              done: false,
+              timestamp: serverTimestamp(),
+            });
+          }
+        });
+        await batch.commit();
+      };
+
+      window.openGroupsManager = function () {
+        renderGroupsManagerList();
+        document.getElementById("groups-manager-modal").classList.remove("hidden");
+      };
+
+      window.closeGroupsManager = function () {
+        document.getElementById("groups-manager-modal").classList.add("hidden");
+      };
+
+      function renderGroupsManagerList() {
+        const el = document.getElementById("groups-manager-list");
+        if (shopGroups.length === 0) {
+          el.innerHTML = '<div style="color:var(--muted);font-size:0.9rem;padding:8px 0">Ingen grupper ennå.</div>';
+          return;
+        }
+        el.innerHTML = shopGroups.map(g => `
+          <div class="sg-group-row">
+            <div>
+              <div class="sg-group-name">${g.emoji ? g.emoji + " " : ""}${escHtml(g.name)}</div>
+              <div class="sg-group-sub">${(g.items || []).length} varer</div>
+            </div>
+            <button class="sg-btn" onclick="openEditGroupForm('${g.id}')">Rediger</button>
+          </div>`).join("");
+      }
+
+      let editingGroupId = null;
+
+      window.openNewGroupForm = function () {
+        editingGroupId = null;
+        document.getElementById("group-form-title").textContent = "Ny gruppe";
+        document.getElementById("group-form-delete-btn").style.display = "none";
+        document.getElementById("sg-name-input").value = "";
+        document.getElementById("sg-emoji-input").value = "";
+        document.getElementById("sg-items-list").innerHTML = "";
+        addSgItemRow();
+        document.getElementById("group-form-modal").classList.remove("hidden");
+      };
+
+      window.openEditGroupForm = function (id) {
+        const g = shopGroups.find(x => x.id === id);
+        if (!g) return;
+        editingGroupId = id;
+        document.getElementById("group-form-title").textContent = "Rediger gruppe";
+        const delBtn = document.getElementById("group-form-delete-btn");
+        delBtn.style.display = "flex";
+        document.getElementById("sg-name-input").value = g.name || "";
+        document.getElementById("sg-emoji-input").value = g.emoji || "";
+        const itemsList = document.getElementById("sg-items-list");
+        itemsList.innerHTML = "";
+        (g.items || []).forEach(item => addSgItemRow(item));
+        document.getElementById("group-form-modal").classList.remove("hidden");
+      };
+
+      window.closeGroupForm = function () {
+        document.getElementById("group-form-modal").classList.add("hidden");
+        editingGroupId = null;
+      };
+
+      window.addSgItemRow = function (item = null) {
+        const id = item?.id || crypto.randomUUID();
+        const catOptions = SHOP_CATEGORIES.map(c =>
+          `<option value="${c.id}"${(item?.category || "annet") === c.id ? " selected" : ""}>${c.label}</option>`
+        ).join("");
+        const row = document.createElement("div");
+        row.className = "sg-item-row";
+        row.dataset.id = id;
+        row.innerHTML = `
+          <input class="sg-item-text-input" type="text" placeholder="Varenavn" value="${escHtml(item?.text || "")}" />
+          <input class="sg-item-qty-input" type="number" min="1" max="99" value="${item?.qty || 1}" />
+          <select class="sg-item-cat-select">${catOptions}</select>
+          <button class="sg-remove-btn" onclick="this.closest('.sg-item-row').remove()">✕</button>`;
+        document.getElementById("sg-items-list").appendChild(row);
+      };
+
+      window.saveShopGroup = async function () {
+        const { updateDoc: upd } =
+          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        const name = document.getElementById("sg-name-input").value.trim();
+        if (!name) return;
+        const emoji = document.getElementById("sg-emoji-input").value.trim();
+        const rows = document.querySelectorAll("#sg-items-list .sg-item-row");
+        const items = [];
+        rows.forEach(row => {
+          const text = row.querySelector(".sg-item-text-input").value.trim();
+          if (!text) return;
+          items.push({
+            id: row.dataset.id,
+            text,
+            qty: parseInt(row.querySelector(".sg-item-qty-input").value) || 1,
+            category: row.querySelector(".sg-item-cat-select").value,
+          });
+        });
+        document.getElementById("group-form-modal").classList.add("hidden");
+        if (editingGroupId) {
+          await upd(doc(db, "shopgroups", editingGroupId), { name, emoji, items });
+        } else {
+          await addDoc(collection(db, "shopgroups"), { name, emoji, items });
+        }
+        editingGroupId = null;
+        renderGroupsManagerList();
+      };
+
+      window.deleteShopGroup = async function () {
+        if (!editingGroupId) return;
+        document.getElementById("group-form-modal").classList.add("hidden");
+        await deleteDoc(doc(db, "shopgroups", editingGroupId));
+        editingGroupId = null;
+        renderGroupsManagerList();
       };
 
       // ── Beskjeder ────────────────────────────────────────────────────────────────
@@ -2346,7 +2816,7 @@
             const start = () => {
               pressTimer = setTimeout(() => {
                 pressTimer = null;
-                openItemQtyModal(id, qty, el.dataset.cat);
+                openItemQtyModal(id, qty, el.dataset.cat, el.querySelector(".shop-item-text")?.textContent);
               }, 500);
             };
             const end = () => {
@@ -2376,11 +2846,21 @@
                   const g = document.elementFromPoint(x, y)?.closest(".shop-group");
                   document.querySelectorAll(".shop-group.shop-drop-target").forEach(n => n.classList.remove("shop-drop-target"));
                   if (g) g.classList.add("shop-drop-target");
+                  // Auto-scroll when near top/bottom edge of list
+                  const list = document.getElementById("shop-list");
+                  if (list) {
+                    const rect = list.getBoundingClientRect();
+                    const zone = 80;
+                    if (y < rect.top + zone) startShopScroll(-1);
+                    else if (y > rect.bottom - zone) startShopScroll(1);
+                    else stopShopScroll();
+                  }
                   ev.preventDefault();
                 };
                 const onEnd = ev => {
                   document.removeEventListener(moveEvent, onMove);
                   document.removeEventListener(endEvent, onEnd);
+                  stopShopScroll();
                   if (moved) endShopDrag(getX(ev), getY(ev));
                 };
                 document.addEventListener(moveEvent, onMove, { passive: false });
