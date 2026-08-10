@@ -1015,7 +1015,7 @@
         padding: 6px 6px 6px 10px;
         user-select: none;
         -webkit-user-select: none;
-        touch-action: pan-y;
+        touch-action: pan-x;
         box-sizing: border-box;
         display: flex;
         align-items: center;
@@ -2323,10 +2323,7 @@
       };
 
       window.hideShopSuggestions = function () {
-        setTimeout(() => {
-          const dropdown = document.getElementById("shop-suggestions");
-          if (dropdown) dropdown.style.display = "none";
-        }, 150);
+        setTimeout(() => setShopSuggestionsVisible(false), 150);
       };
 
       window.handleShopKeydown = function (e) {
