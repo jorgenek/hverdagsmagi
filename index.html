@@ -974,11 +974,7 @@
         border-top: 1px solid var(--border);
         background: var(--surface);
         flex-shrink: 0;
-        padding: 10px 0 0;
-        max-height: 42vh;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
+        padding: 10px 0 max(12px, env(safe-area-inset-bottom));
       }
       .meals-library-label {
         font-size: 0.68rem;
@@ -987,17 +983,17 @@
         text-transform: uppercase;
         letter-spacing: 0.07em;
         padding: 0 14px 6px;
-        flex-shrink: 0;
       }
       .meals-library-row {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        display: flex;
+        flex-wrap: nowrap;
         gap: 8px;
-        padding: 0 14px max(14px, env(safe-area-inset-bottom));
-        overflow-y: auto;
+        padding: 0 14px 4px;
+        overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        flex: 1;
+        scrollbar-width: none;
       }
+      .meals-library-row::-webkit-scrollbar { display: none; }
       .dinner-row.selected {
         border-color: var(--blue);
         background: rgba(59,130,246,0.10);
@@ -2039,14 +2035,33 @@
           });
         });
 
-        // Tap → assign to selected day (on chip content, not handle/edit btn)
+        // Tap / double-click / long-press on chip
         row.querySelectorAll('.meal-chip').forEach(chip => {
           const id = chip.dataset.id;
+          let lpTimer = null;
+          let clicks = 0;
+          let clickTimer = null;
 
           chip.addEventListener('click', e => {
             if (e.target.closest('.meal-chip-drag-handle')) return;
-            if (selectedDay) assignMealToDay(id);
+            clicks++;
+            if (clicks === 1) {
+              clickTimer = setTimeout(() => {
+                clicks = 0;
+                if (selectedDay) assignMealToDay(id);
+              }, 250);
+            } else {
+              clearTimeout(clickTimer);
+              clicks = 0;
+              openMealForm(id);
+            }
           });
+
+          chip.addEventListener('touchstart', () => {
+            lpTimer = setTimeout(() => { lpTimer = null; openMealForm(id); }, 600);
+          }, { passive: true });
+          chip.addEventListener('touchend', () => { clearTimeout(lpTimer); lpTimer = null; }, { passive: true });
+          chip.addEventListener('touchmove', () => { clearTimeout(lpTimer); lpTimer = null; }, { passive: true });
         });
       }
 
@@ -2771,8 +2786,6 @@
           const undone = items.filter((i) => !i.done);
           activeShopTexts = new Set(undone.map((i) => i.text.toLowerCase()));
           activeShopItems = new Map(undone.map((i) => [i.text.toLowerCase(), { id: i.id, qty: i.qty || 1 }]));
-          // Sort: undone first, done last
-          items.sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
           const list = document.getElementById("shop-list");
           const doneCount = items.filter((i) => i.done).length;
           if (items.length === 0) {
