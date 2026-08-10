@@ -888,7 +888,11 @@
         border-top: 1px solid var(--border);
         background: var(--surface);
         flex-shrink: 0;
-        padding: 10px 0 max(12px, env(safe-area-inset-bottom));
+        padding: 10px 0 0;
+        max-height: 42vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
       }
       .meals-library-label {
         font-size: 0.68rem;
@@ -897,14 +901,16 @@
         text-transform: uppercase;
         letter-spacing: 0.07em;
         padding: 0 14px 6px;
+        flex-shrink: 0;
       }
       .meals-library-row {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: 8px;
-        padding: 0 14px 4px;
-        max-height: 180px;
+        padding: 0 14px max(14px, env(safe-area-inset-bottom));
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        flex: 1;
       }
       .dinner-row.selected {
         border-color: var(--blue);
@@ -2146,6 +2152,11 @@
         const input = document.getElementById("shop-input");
         input.value = text;
         document.getElementById("shop-suggestions").style.display = "none";
+        const qp = quickPicks.find((q) => q.text.toLowerCase() === text.toLowerCase());
+        if (qp && qp.category) {
+          selectedCategory = qp.category;
+          buildCatBar();
+        }
         input.focus();
       };
 
