@@ -721,6 +721,86 @@
         text-transform: uppercase;
         letter-spacing: 0.07em;
       }
+      /* ─── Hurtigvalg management ───────────────────────────────────────────────── */
+      .qp-manage-item {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        margin-bottom: 8px;
+        overflow: hidden;
+      }
+      .qp-manage-main {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 13px 14px;
+      }
+      .qp-manage-name {
+        flex: 1;
+        font-size: 0.95rem;
+        font-weight: 600;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .qp-manage-cat {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--muted);
+        background: var(--surface2);
+        border-radius: 20px;
+        padding: 3px 9px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .qp-manage-btns {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .qp-manage-btn {
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 1rem;
+        cursor: pointer;
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.12s, color 0.12s;
+      }
+      .qp-manage-btn:active { background: var(--surface2); }
+      .qp-manage-btn.del { color: var(--red); }
+      .qp-manage-edit-panel {
+        display: none;
+        padding: 12px 14px 14px;
+        border-top: 1px solid var(--border);
+        background: var(--surface2);
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .qp-manage-edit-panel.open { display: flex; }
+      .qp-manage-edit-row {
+        display: flex;
+        gap: 8px;
+      }
+      .qp-manage-edit-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 2px;
+      }
+      .qp-empty-state {
+        text-align: center;
+        padding: 40px 16px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
       .shop-groups-edit-btn {
         background: none;
         border: none;
@@ -1214,6 +1294,9 @@
         <div class="header">
           <button class="back-btn" onclick="showView('view-home')">←</button>
           <h1>🛒 Handleliste</h1>
+          <div class="header-actions">
+            <button class="header-action" onclick="showView('view-hurtigvalg')" title="Administrer hurtigvalg" style="background:var(--surface2);color:var(--muted);font-size:1.1rem">⚙</button>
+          </div>
         </div>
         <div class="shop-input-bar">
           <input
@@ -1247,6 +1330,16 @@
           <div class="shop-groups-row" id="shop-groups-row"></div>
         </div>
         <div class="scroll" id="shop-list">
+          <div class="loading-state"><div class="spinner"></div></div>
+        </div>
+      </div>
+      <!-- VIEW: Hurtigvalg-administrasjon -->
+      <div class="view hidden" id="view-hurtigvalg">
+        <div class="header">
+          <button class="back-btn" onclick="showView('view-handel')">←</button>
+          <h1>⚡ Hurtigvalg</h1>
+        </div>
+        <div class="scroll" id="hurtigvalg-list">
           <div class="loading-state"><div class="spinner"></div></div>
         </div>
       </div>
@@ -1603,6 +1696,10 @@
           subscribeShoppingList();
           subscribeQuickPicks();
           subscribeShopGroups();
+        }
+        if (id === "view-hurtigvalg") {
+          subscribeQuickPicks();
+          renderHurtigvalg();
         }
       };
 
@@ -2129,6 +2226,7 @@
         unsubQuickPicks = onSnapshot(q, (snap) => {
           quickPicks = [];
           snap.forEach((d) => quickPicks.push({ id: d.id, ...d.data() }));
+          if (currentView === "view-hurtigvalg") renderHurtigvalg();
         });
       }
 
@@ -2213,6 +2311,62 @@
         }
       };
 
+
+      // ── Hurtigvalg-administrasjon ────────────────────────────────────────────────
+      function renderHurtigvalg() {
+        const list = document.getElementById("hurtigvalg-list");
+        if (!list) return;
+        const sorted = [...quickPicks].sort((a, b) => a.text.localeCompare(b.text, "no"));
+        if (sorted.length === 0) {
+          list.innerHTML = '<div class="qp-empty-state">Ingen hurtigvalg ennå.<br>De opprettes automatisk når du legger til varer i handlelisten.</div>';
+          return;
+        }
+        list.innerHTML = sorted.map((qp) => {
+          const catLabel = SHOP_CATEGORIES.find((c) => c.id === qp.category)?.label ?? "📦 Annet";
+          const catOptions = SHOP_CATEGORIES.map((c) =>
+            `<option value="${c.id}"${c.id === (qp.category || "annet") ? " selected" : ""}>${c.label}</option>`
+          ).join("");
+          return `
+          <div class="qp-manage-item" id="qp-item-${qp.id}">
+            <div class="qp-manage-main">
+              <span class="qp-manage-name">${escHtml(qp.text)}</span>
+              <span class="qp-manage-cat">${catLabel}</span>
+              <div class="qp-manage-btns">
+                <button class="qp-manage-btn" onclick="toggleQpEdit('${qp.id}')" title="Rediger">✏️</button>
+                <button class="qp-manage-btn del" onclick="deleteQp('${qp.id}','${qp.text.replace(/'/g,"\\'")}')">🗑</button>
+              </div>
+            </div>
+            <div class="qp-manage-edit-panel" id="qp-edit-${qp.id}">
+              <div class="qp-manage-edit-row">
+                <input class="form-input" id="qp-name-${qp.id}" value="${escHtml(qp.text)}" placeholder="Navn" style="flex:1" />
+              </div>
+              <select class="form-input" id="qp-cat-${qp.id}">${catOptions}</select>
+              <div class="qp-manage-edit-actions">
+                <button class="save-btn" style="margin-top:0" onclick="saveQp('${qp.id}')">Lagre</button>
+                <button class="edit-cancel-btn" onclick="toggleQpEdit('${qp.id}')">Avbryt</button>
+              </div>
+            </div>
+          </div>`;
+        }).join("");
+      }
+
+      window.toggleQpEdit = function (id) {
+        const panel = document.getElementById("qp-edit-" + id);
+        panel.classList.toggle("open");
+      };
+
+      window.saveQp = async function (id) {
+        const newName = document.getElementById("qp-name-" + id).value.trim();
+        const newCat = document.getElementById("qp-cat-" + id).value;
+        if (!newName) return;
+        const { updateDoc: upd } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+        await upd(doc(db, "quickpicks", id), { text: newName, category: newCat });
+      };
+
+      window.deleteQp = async function (id, name) {
+        if (!confirm(`Fjerne «${name}» fra hurtigvalg?`)) return;
+        await deleteDoc(doc(db, "quickpicks", id));
+      };
 
       // ── Hurtiggrupper ───────────────────────────────────────────────────────────
       function subscribeShopGroups() {
@@ -2512,19 +2666,19 @@
           return;
         }
         const existingQp = quickPicks.find((q) => q.text.toLowerCase() === text.toLowerCase());
+        const canonical = existingQp ? existingQp.text : text;
+        const qpUpdate = { count: (existingQp?.count ?? 0) + 1, lastAdded: serverTimestamp() };
+        if (existingQp && existingQp.category !== selectedCategory) qpUpdate.category = selectedCategory;
         await Promise.all([
           addDoc(collection(db, "shopping"), {
-            text,
+            text: canonical,
             qty,
-            category: existingQp ? (existingQp.category || selectedCategory) : selectedCategory,
+            category: selectedCategory,
             done: false,
             timestamp: serverTimestamp(),
           }),
           existingQp
-            ? upd(doc(db, "quickpicks", existingQp.id), {
-                count: (existingQp.count ?? 0) + 1,
-                lastAdded: serverTimestamp(),
-              })
+            ? upd(doc(db, "quickpicks", existingQp.id), qpUpdate)
             : addDoc(collection(db, "quickpicks"), {
                 text,
                 category: selectedCategory,
