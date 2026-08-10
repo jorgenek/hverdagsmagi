@@ -505,6 +505,7 @@
         background: var(--surface);
         border-bottom: 1px solid var(--border);
         flex-shrink: 0;
+        position: relative;
       }
       .shop-input {
         flex: 1;
@@ -668,64 +669,35 @@
         border-color: var(--blue);
         color: #fff;
       }
-      .shop-fav-btn {
-        background: transparent;
-        border: 1px solid var(--border);
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        font-size: 1.2rem;
-        color: var(--muted);
-        cursor: pointer;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition:
-          color 0.15s,
-          border-color 0.15s;
-      }
-      .shop-fav-btn.active {
-        color: var(--yellow);
-        border-color: var(--yellow);
-      }
-
-      .shop-quickpicks-section {
-        border-bottom: 1px solid var(--border);
-        padding: 8px 0 10px;
-        flex-shrink: 0;
-      }
-      .shop-quickpicks-label {
-        font-size: 0.68rem;
-        font-weight: 700;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.07em;
-        padding: 0 12px 6px;
-      }
-      .shop-quickpicks-row {
-        display: flex;
-        gap: 8px;
-        padding: 0 12px;
-        overflow-x: auto;
-        scrollbar-width: none;
-      }
-      .shop-quickpicks-row::-webkit-scrollbar {
+      .shop-suggestions {
         display: none;
-      }
-      .shop-qp-chip {
-        flex-shrink: 0;
-        padding: 6px 14px;
-        border-radius: 20px;
-        border: 1px solid var(--border);
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
         background: var(--surface);
-        color: var(--text);
-        font-size: 0.85rem;
+        border: 1px solid var(--border);
+        border-top: none;
+        border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+        z-index: 50;
+        max-height: 220px;
+        overflow-y: auto;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+      }
+      .shop-suggestion-item {
+        padding: 13px 16px;
         cursor: pointer;
+        font-size: 0.95rem;
+        border-bottom: 1px solid var(--border);
+        transition: background 0.1s;
         user-select: none;
         -webkit-user-select: none;
-        white-space: nowrap;
-        transition: background 0.12s;
+      }
+      .shop-suggestion-item:last-child {
+        border-bottom: none;
+      }
+      .shop-suggestion-item:active {
+        background: var(--surface2);
       }
       .shop-qp-chip:active {
         background: var(--surface2);
@@ -1242,7 +1214,11 @@
             class="shop-input"
             id="shop-input"
             placeholder="Legg til vare…"
-            onkeydown="if (event.key === 'Enter') addShopItem();"
+            oninput="onShopInput()"
+            onfocus="onShopInput()"
+            onblur="hideShopSuggestions()"
+            onkeydown="handleShopKeydown(event)"
+            autocomplete="off"
           />
           <input
             class="shop-qty-input"
@@ -1253,15 +1229,8 @@
             value="1"
             onkeydown="if (event.key === 'Enter') addShopItem();"
           />
-          <button
-            class="shop-fav-btn"
-            id="shop-fav-btn"
-            onclick="toggleSaveQuickPick()"
-            title="Lagre som hurtigvalg"
-          >
-            ☆
-          </button>
           <button class="shop-add-btn" onclick="addShopItem()">+</button>
+          <div class="shop-suggestions" id="shop-suggestions"></div>
         </div>
         <div class="shop-cat-bar" id="shop-cat-bar"></div>
         <div class="shop-groups-section" id="shop-groups-section" style="display:none">
@@ -1270,14 +1239,6 @@
             <button class="shop-groups-edit-btn" onclick="openGroupsManager()">Rediger</button>
           </div>
           <div class="shop-groups-row" id="shop-groups-row"></div>
-        </div>
-        <div
-          class="shop-quickpicks-section"
-          id="shop-quickpicks-section"
-          style="display: none"
-        >
-          <div class="shop-quickpicks-label">Hurtigvalg</div>
-          <div class="shop-quickpicks-row" id="shop-quickpicks-row"></div>
         </div>
         <div class="scroll" id="shop-list">
           <div class="loading-state"><div class="spinner"></div></div>
@@ -1425,62 +1386,6 @@
       </div>
     </div>
 
-    <!-- Quick-pick qty modal -->
-    <div
-      class="sheet-overlay hidden"
-      id="qp-modal"
-      onclick="if (event.target === this) closeQpModal();"
-    >
-      <div class="sheet">
-        <div class="sheet-handle"></div>
-        <div style="display: flex; align-items: center; gap: 10px">
-          <div class="sheet-title" id="qp-modal-title" style="flex: 1"></div>
-          <button
-            onclick="deleteQuickPick()"
-            style="
-              background: var(--red);
-              border: none;
-              color: #fff;
-              width: 32px;
-              height: 32px;
-              border-radius: 50%;
-              font-size: 1rem;
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              flex-shrink: 0;
-            "
-          >
-            🗑
-          </button>
-        </div>
-        <div style="font-size:0.78rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-top:12px;margin-bottom:6px">Navn</div>
-        <div style="display:flex;gap:8px;margin-bottom:14px">
-          <input class="sheet-input" id="qp-modal-name" type="text" style="margin-bottom:0;flex:1" />
-          <button onclick="saveQpName()" style="background:var(--blue);border:none;color:#fff;padding:0 14px;border-radius:var(--radius-sm);font-size:0.85rem;cursor:pointer;font-weight:600;white-space:nowrap">Lagre</button>
-        </div>
-        <div class="sheet-day-label">Hvor mange vil du legge til?</div>
-        <input
-          class="sheet-input"
-          id="qp-modal-qty"
-          type="number"
-          min="1"
-          max="99"
-          value="1"
-          style="margin-top: 8px"
-        />
-        <div class="sheet-actions">
-          <button class="sheet-btn sheet-btn-cancel" onclick="closeQpModal()">
-            Avbryt
-          </button>
-          <button class="sheet-btn sheet-btn-save" onclick="confirmQpModal()">
-            Legg til
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- Group item picker modal -->
     <div class="sheet-overlay hidden" id="group-pick-modal" onclick="if(event.target===this)closeGroupPickModal()">
       <div class="sheet" style="max-height:85vh;overflow-y:auto">
@@ -1587,7 +1492,6 @@
         { id: "annet", label: "📦 Annet" },
       ];
       let selectedCategory = "annet";
-      let saveAsQuickPick = false;
       let quickPicks = [];
       let activeShopTexts = new Set(); // text (lowercase) of undone items — for quickpick filtering
       let activeShopItems = new Map(); // text.toLowerCase() → { id, qty } — for dedup on add
@@ -2212,106 +2116,50 @@
         editingDate = null;
       };
 
-      // ── Quick picks ─────────────────────────────────────────────────────────────
-      window.toggleSaveQuickPick = function () {
-        saveAsQuickPick = !saveAsQuickPick;
-        const btn = document.getElementById("shop-fav-btn");
-        btn.textContent = saveAsQuickPick ? "★" : "☆";
-        btn.classList.toggle("active", saveAsQuickPick);
-      };
-
+      // ── Quick picks / autocomplete ───────────────────────────────────────────────
       function subscribeQuickPicks() {
         if (unsubQuickPicks) return;
         const q = query(collection(db, "quickpicks"), orderBy("count", "desc"));
         unsubQuickPicks = onSnapshot(q, (snap) => {
           quickPicks = [];
           snap.forEach((d) => quickPicks.push({ id: d.id, ...d.data() }));
-          renderQuickPicks();
         });
       }
 
-      function renderQuickPicks() {
-        const visible = quickPicks.filter(
-          (qp) => !activeShopTexts.has(qp.text.toLowerCase()),
+      window.onShopInput = function () {
+        const input = document.getElementById("shop-input");
+        const text = input.value.trim().toLowerCase();
+        const dropdown = document.getElementById("shop-suggestions");
+        if (!text) { dropdown.style.display = "none"; return; }
+        const matches = quickPicks.filter(
+          (qp) => qp.text.toLowerCase().includes(text) && !activeShopTexts.has(qp.text.toLowerCase())
         );
-        const section = document.getElementById("shop-quickpicks-section");
-        const row = document.getElementById("shop-quickpicks-row");
-        if (!section || !row) return;
-        if (visible.length === 0) {
-          section.style.display = "none";
-          return;
-        }
-        section.style.display = "block";
-        row.innerHTML = visible
-          .map(
-            (qp) => `
-          <div class="shop-qp-chip" data-id="${qp.id}">${escHtml(qp.text)}</div>`,
-          )
-          .join("");
+        if (matches.length === 0) { dropdown.style.display = "none"; return; }
+        dropdown.style.display = "block";
+        dropdown.innerHTML = matches.slice(0, 8).map((qp) =>
+          `<div class="shop-suggestion-item" onmousedown="selectSuggestion(event,'${qp.text.replace(/'/g, "\\'")}')">${escHtml(qp.text)}</div>`
+        ).join("");
+      };
 
-        row.querySelectorAll(".shop-qp-chip").forEach((chip) => {
-          const qpId = chip.dataset.id;
-          const qp = quickPicks.find((q) => q.id === qpId);
-          if (!qp) return;
-          let pressTimer = null;
+      window.selectSuggestion = function (e, text) {
+        e.preventDefault();
+        const input = document.getElementById("shop-input");
+        input.value = text;
+        document.getElementById("shop-suggestions").style.display = "none";
+        input.focus();
+      };
 
-          const startPress = () => {
-            pressTimer = setTimeout(() => {
-              pressTimer = null;
-              openQpModal(qp);
-            }, 500);
-          };
-          const endPress = (e) => {
-            if (pressTimer) {
-              clearTimeout(pressTimer);
-              pressTimer = null;
-              e.preventDefault();
-              addFromQuickPick(qp, 1);
-            }
-          };
-          const cancelPress = () => {
-            if (pressTimer) {
-              clearTimeout(pressTimer);
-              pressTimer = null;
-            }
-          };
+      window.hideShopSuggestions = function () {
+        setTimeout(() => {
+          const dropdown = document.getElementById("shop-suggestions");
+          if (dropdown) dropdown.style.display = "none";
+        }, 150);
+      };
 
-          chip.addEventListener("touchstart", startPress, { passive: true });
-          chip.addEventListener("touchend", endPress);
-          chip.addEventListener("touchmove", cancelPress, { passive: true });
-          chip.addEventListener("mousedown", startPress);
-          chip.addEventListener("mouseup", endPress);
-          chip.addEventListener("mouseleave", cancelPress);
-        });
-      }
-
-      async function addFromQuickPick(qp, qty) {
-        const { updateDoc: upd } =
-          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-        await Promise.all([
-          addDoc(collection(db, "shopping"), {
-            text: qp.text,
-            qty,
-            category: qp.category || "annet",
-            done: false,
-            timestamp: serverTimestamp(),
-          }),
-          upd(doc(db, "quickpicks", qp.id), {
-            count: (qp.count ?? 0) + 1,
-            lastAdded: serverTimestamp(),
-          }),
-        ]);
-      }
-
-      let pendingQp = null;
-
-      function openQpModal(qp) {
-        pendingQp = qp;
-        document.getElementById("qp-modal-title").textContent = qp.text;
-        document.getElementById("qp-modal-name").value = qp.text;
-        document.getElementById("qp-modal-qty").value = 1;
-        document.getElementById("qp-modal").classList.remove("hidden");
-      }
+      window.handleShopKeydown = function (e) {
+        if (e.key === "Enter") { addShopItem(); }
+        if (e.key === "Escape") { document.getElementById("shop-suggestions").style.display = "none"; }
+      };
 
       let editingItemId = null;
 
@@ -2354,43 +2202,6 @@
         }
       };
 
-      window.closeQpModal = function () {
-        document.getElementById("qp-modal").classList.add("hidden");
-        pendingQp = null;
-      };
-
-      window.saveQpName = async function () {
-        if (!pendingQp) return;
-        const newName = document.getElementById("qp-modal-name").value.trim();
-        if (!newName || newName === pendingQp.text) return;
-        const { updateDoc: upd } =
-          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-        await upd(doc(db, "quickpicks", pendingQp.id), { text: newName });
-        pendingQp = { ...pendingQp, text: newName };
-        document.getElementById("qp-modal-title").textContent = newName;
-      };
-
-      window.deleteQuickPick = async function () {
-        if (!pendingQp) return;
-        document.getElementById("qp-modal").classList.add("hidden");
-        await deleteDoc(doc(db, "quickpicks", pendingQp.id));
-        pendingQp = null;
-      };
-
-      window.confirmQpModal = async function () {
-        if (!pendingQp) return;
-        const newName = document.getElementById("qp-modal-name").value.trim();
-        const qty = parseInt(document.getElementById("qp-modal-qty").value) || 1;
-        document.getElementById("qp-modal").classList.add("hidden");
-        const { updateDoc: upd } =
-          await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-        if (newName && newName !== pendingQp.text) {
-          await upd(doc(db, "quickpicks", pendingQp.id), { text: newName });
-          pendingQp = { ...pendingQp, text: newName };
-        }
-        await addFromQuickPick(pendingQp, qty);
-        pendingQp = null;
-      };
 
       // ── Hurtiggrupper ───────────────────────────────────────────────────────────
       function subscribeShopGroups() {
@@ -2680,6 +2491,7 @@
         const qty = parseInt(qtyInput.value) || 1;
         input.value = "";
         qtyInput.value = "1";
+        document.getElementById("shop-suggestions").style.display = "none";
         input.focus();
         const { updateDoc: upd } =
           await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
@@ -2688,40 +2500,27 @@
           await upd(doc(db, "shopping", existing.id), { qty: existing.qty + qty });
           return;
         }
-        const promises = [
+        const existingQp = quickPicks.find((q) => q.text.toLowerCase() === text.toLowerCase());
+        await Promise.all([
           addDoc(collection(db, "shopping"), {
             text,
             qty,
-            category: selectedCategory,
+            category: existingQp ? (existingQp.category || selectedCategory) : selectedCategory,
             done: false,
             timestamp: serverTimestamp(),
           }),
-        ];
-        if (saveAsQuickPick) {
-          const existing = quickPicks.find(
-            (q) => q.text.toLowerCase() === text.toLowerCase(),
-          );
-          const { updateDoc: upd } =
-            await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-          if (existing) {
-            promises.push(
-              upd(doc(db, "quickpicks", existing.id), {
-                count: existing.count + 1,
+          existingQp
+            ? upd(doc(db, "quickpicks", existingQp.id), {
+                count: (existingQp.count ?? 0) + 1,
                 lastAdded: serverTimestamp(),
-              }),
-            );
-          } else {
-            promises.push(
-              addDoc(collection(db, "quickpicks"), {
+              })
+            : addDoc(collection(db, "quickpicks"), {
                 text,
                 category: selectedCategory,
                 count: 1,
                 lastAdded: serverTimestamp(),
               }),
-            );
-          }
-        }
-        await Promise.all(promises);
+        ]);
       };
 
       window.toggleShopItem = async function (id, done) {
@@ -2759,7 +2558,6 @@
           const undone = items.filter((i) => !i.done);
           activeShopTexts = new Set(undone.map((i) => i.text.toLowerCase()));
           activeShopItems = new Map(undone.map((i) => [i.text.toLowerCase(), { id: i.id, qty: i.qty || 1 }]));
-          renderQuickPicks();
           // Sort: undone first, done last
           items.sort((a, b) => (a.done === b.done ? 0 : a.done ? 1 : -1));
           const list = document.getElementById("shop-list");
