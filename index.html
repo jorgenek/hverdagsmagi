@@ -1009,16 +1009,57 @@
         background: var(--surface2);
         border: 1px solid var(--border);
         border-radius: var(--radius-sm);
-        padding: 6px 10px;
-        cursor: grab;
+        padding: 6px 6px 6px 10px;
         user-select: none;
         -webkit-user-select: none;
-        touch-action: none;
+        touch-action: pan-y;
         box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .meal-chip-content { flex: 1; min-width: 0; }
+      .meal-chip-drag-handle {
+        flex-shrink: 0;
+        color: var(--muted);
+        font-size: 1rem;
+        cursor: grab;
+        touch-action: none;
+        padding: 2px 4px;
+        line-height: 1;
       }
       .meal-chip-name { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .meal-chip-ing { font-size: 0.68rem; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .meal-chip.dragging { opacity: 0.4; }
+      .meal-chip { position: relative; }
+      .meal-chip-edit-btn {
+        position: absolute;
+        top: 3px;
+        right: 3px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(0,0,0,0.35);
+        color: #fff;
+        font-size: 0.55rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        flex-shrink: 0;
+      }
+      .dinner-meal-option {
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        transition: background 0.12s;
+      }
+      .dinner-meal-option:active { background: var(--surface2); }
+      .dinner-meal-option:last-child { border-bottom: none; }
+      .dinner-meal-option-name { font-size: 0.95rem; font-weight: 600; }
+      .dinner-meal-option-ing { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
       .meal-drag-ghost {
         position: fixed;
         pointer-events: none;
@@ -1384,27 +1425,18 @@
       id="dinner-sheet"
       onclick="closeDinnerSheet(event)"
     >
-      <div class="sheet">
+      <div class="sheet" style="max-height:88vh;display:flex;flex-direction:column;overflow:hidden;padding-bottom:0">
         <div class="sheet-handle"></div>
-        <div class="sheet-title">Middag</div>
-        <div class="sheet-day-label" id="sheet-day-label"></div>
-        <select class="sheet-input" id="sheet-meal-select" style="margin-bottom:8px">
-          <option value="">— Velg lagret måltid —</option>
-        </select>
-        <input class="sheet-input" id="sheet-input" placeholder="Eller skriv inn manuelt" />
-        <div class="sheet-actions">
-          <button
-            class="sheet-btn sheet-btn-cancel"
-            onclick="closeDinnerSheet()"
-          >
-            Avbryt
-          </button>
-          <button class="sheet-btn sheet-btn-clear" onclick="clearDinner()">
-            Fjern
-          </button>
-          <button class="sheet-btn sheet-btn-save" onclick="saveDinner()">
-            Lagre
-          </button>
+        <div class="sheet-title" style="flex-shrink:0">Velg middag</div>
+        <div class="sheet-day-label" id="sheet-day-label" style="flex-shrink:0"></div>
+        <div id="sheet-meal-list" style="overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;margin:0 -20px"></div>
+        <div style="flex-shrink:0;border-top:1px solid var(--border);padding:12px 0 max(20px,env(safe-area-inset-bottom))">
+          <input class="sheet-input" id="sheet-input" placeholder="Eller skriv inn manuelt" style="margin-bottom:10px" />
+          <div class="sheet-actions">
+            <button class="sheet-btn sheet-btn-cancel" onclick="closeDinnerSheet()">Avbryt</button>
+            <button class="sheet-btn sheet-btn-clear" onclick="clearDinner()">Fjern</button>
+            <button class="sheet-btn sheet-btn-save" onclick="saveDinner()">Lagre</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1956,63 +1988,70 @@
         lib.style.display = 'block';
         row.innerHTML = meals.map(m => `
           <div class="meal-chip" data-id="${m.id}">
-            <div class="meal-chip-name">${escHtml(m.name)}</div>
-            ${m.ingredients?.length ? `<div class="meal-chip-ing">${m.ingredients.slice(0,3).map(i => escHtml(typeof i === 'string' ? i : i.name)).join(', ')}${m.ingredients.length > 3 ? '…' : ''}</div>` : ''}
+            <div class="meal-chip-content">
+              <div class="meal-chip-name">${escHtml(m.name)}</div>
+              ${m.ingredients?.length ? `<div class="meal-chip-ing">${m.ingredients.slice(0,3).map(i => escHtml(typeof i === 'string' ? i : i.name)).join(', ')}${m.ingredients.length > 3 ? '…' : ''}</div>` : ''}
+            </div>
+            <button class="meal-chip-edit-btn" data-edit="${m.id}" title="Rediger">✏</button>
+            <span class="meal-chip-drag-handle" data-drag="${m.id}">⠿</span>
           </div>`).join('');
 
-        row.querySelectorAll('.meal-chip').forEach(chip => {
-          const id = chip.dataset.id;
-          let longPressTimer = null;
+        row.querySelectorAll('.meal-chip-edit-btn').forEach(btn => {
+          btn.addEventListener('click', e => {
+            e.stopPropagation();
+            openMealForm(btn.dataset.edit);
+          });
+          btn.addEventListener('touchend', e => {
+            e.stopPropagation();
+            e.preventDefault();
+            openMealForm(btn.dataset.edit);
+          });
+        });
 
-          // Long press → edit meal
-          const startLP = () => { longPressTimer = setTimeout(() => { longPressTimer = null; openMealForm(id); }, 600); };
-          const cancelLP = () => { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } };
+        // Drag — only from the drag handle
+        row.querySelectorAll('.meal-chip-drag-handle').forEach(handle => {
+          const id = handle.dataset.drag;
+          const chip = handle.closest('.meal-chip');
 
-          // Touch drag / tap
-          chip.addEventListener('touchstart', e => {
-            startLP();
-            let moved = false;
+          handle.addEventListener('touchstart', e => {
             const onMove = ev => {
-              if (!moved) { cancelLP(); moved = true; startDrag(id, chip, ev.touches[0].clientX, ev.touches[0].clientY); }
               if (dragGhost) moveDragGhost(ev.touches[0].clientX, ev.touches[0].clientY);
+              else startDrag(id, chip, ev.touches[0].clientX, ev.touches[0].clientY);
               highlightDropTarget(ev.touches[0].clientX, ev.touches[0].clientY);
               ev.preventDefault();
             };
             const onEnd = ev => {
-              cancelLP();
               document.removeEventListener('touchmove', onMove);
               document.removeEventListener('touchend', onEnd);
-              if (moved) {
-                endDrag(ev.changedTouches[0].clientX, ev.changedTouches[0].clientY);
-              } else if (selectedDay) {
-                assignMealToDay(id);
-              }
+              endDrag(ev.changedTouches[0].clientX, ev.changedTouches[0].clientY);
             };
             document.addEventListener('touchmove', onMove, { passive: false });
             document.addEventListener('touchend', onEnd);
           }, { passive: true });
 
-          // Mouse drag / click (desktop)
-          chip.addEventListener('mousedown', e => {
-            startLP();
-            let moved = false;
+          handle.addEventListener('mousedown', e => {
             const onMove = ev => {
-              if (!moved) { cancelLP(); moved = true; startDrag(id, chip, ev.clientX, ev.clientY); }
               if (dragGhost) moveDragGhost(ev.clientX, ev.clientY);
+              else startDrag(id, chip, ev.clientX, ev.clientY);
               highlightDropTarget(ev.clientX, ev.clientY);
             };
             const onUp = ev => {
-              cancelLP();
               document.removeEventListener('mousemove', onMove);
               document.removeEventListener('mouseup', onUp);
-              if (moved) {
-                endDrag(ev.clientX, ev.clientY);
-              } else if (selectedDay) {
-                assignMealToDay(id);
-              }
+              endDrag(ev.clientX, ev.clientY);
             };
             document.addEventListener('mousemove', onMove);
             document.addEventListener('mouseup', onUp);
+          });
+        });
+
+        // Tap → assign to selected day (on chip content, not handle/edit btn)
+        row.querySelectorAll('.meal-chip').forEach(chip => {
+          const id = chip.dataset.id;
+
+          chip.addEventListener('click', e => {
+            if (e.target.closest('.meal-chip-drag-handle') || e.target.closest('.meal-chip-edit-btn')) return;
+            if (selectedDay) assignMealToDay(id);
           });
         });
       }
@@ -2172,26 +2211,36 @@
         document.getElementById("sheet-input").value = dinners[date] || "";
         document.querySelector(".sheet-btn-clear").style.display = dinners[date] ? "" : "none";
 
-        const sel = document.getElementById("sheet-meal-select");
-        sel.innerHTML = '<option value="">— Velg lagret måltid —</option>' +
-          meals.map(m => `<option value="${escHtml(m.name)}">${escHtml(m.name)}</option>`).join('');
-        sel.value = dinners[date] || "";
-        sel.onchange = async () => {
-          if (!sel.value) return;
-          const meal = meals.find(m => m.name === sel.value);
-          document.getElementById("dinner-sheet").classList.add("hidden");
-          const savedDate = editingDate;
-          editingDate = null;
-          const { updateDoc: upd } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-          await setDoc(doc(db, "dinners", savedDate), { meal: sel.value, mealId: meal?.id ?? null });
-          if (meal) {
-            await upd(doc(db, "meals", meal.id), { count: (meal.count ?? 0) + 1 });
-            openMealShopModal(meal);
-          }
-        };
+        const current = dinners[date] || "";
+        document.getElementById("sheet-input").value = current;
+
+        const listEl = document.getElementById("sheet-meal-list");
+        const sorted = [...meals].sort((a, b) => a.name.localeCompare(b.name, "no"));
+        listEl.innerHTML = sorted.length === 0
+          ? `<div style="padding:16px 20px;color:var(--muted);font-size:0.88rem">Ingen lagrede måltider ennå. Trykk + for å legge til.</div>`
+          : sorted.map(m => `
+            <div class="dinner-meal-option" data-meal-id="${m.id}" data-meal-name="${escHtml(m.name)}">
+              <div class="dinner-meal-option-name"${m.name === current ? ' style="color:var(--blue)"' : ''}>${escHtml(m.name)}${m.name === current ? ' ✓' : ''}</div>
+              ${m.ingredients?.length ? `<div class="dinner-meal-option-ing">${m.ingredients.slice(0,4).map(i => escHtml(typeof i === 'string' ? i : i.name)).join(', ')}${m.ingredients.length > 4 ? '…' : ''}</div>` : ''}
+            </div>`).join('');
+
+        listEl.querySelectorAll('.dinner-meal-option').forEach(el => {
+          el.addEventListener('click', async () => {
+            const name = el.dataset.mealName;
+            const meal = meals.find(m => m.name === name);
+            document.getElementById("dinner-sheet").classList.add("hidden");
+            const savedDate = editingDate;
+            editingDate = null;
+            const { updateDoc: upd } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+            await setDoc(doc(db, "dinners", savedDate), { meal: name, mealId: meal?.id ?? null });
+            if (meal) {
+              await upd(doc(db, "meals", meal.id), { count: (meal.count ?? 0) + 1 });
+              openMealShopModal(meal);
+            }
+          });
+        });
 
         document.getElementById("dinner-sheet").classList.remove("hidden");
-        setTimeout(() => document.getElementById("sheet-input").focus(), 100);
       };
 
       window.closeDinnerSheet = function (e) {
