@@ -669,6 +669,12 @@
         border-color: var(--blue);
         color: #fff;
       }
+      .shop-suggestions-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 49;
+      }
       .shop-suggestions {
         display: none;
         position: absolute;
@@ -1362,6 +1368,7 @@
           <button class="shop-add-btn" onclick="addShopItem()">+</button>
           <div class="shop-suggestions" id="shop-suggestions"></div>
         </div>
+        <div class="shop-suggestions-backdrop" id="shop-suggestions-backdrop" onclick="hideShopSuggestions()"></div>
         <div class="shop-cat-bar" id="shop-cat-bar"></div>
         <div class="shop-groups-section" id="shop-groups-section" style="display:none">
           <div class="shop-groups-header">
@@ -1992,21 +1999,8 @@
               <div class="meal-chip-name">${escHtml(m.name)}</div>
               ${m.ingredients?.length ? `<div class="meal-chip-ing">${m.ingredients.slice(0,3).map(i => escHtml(typeof i === 'string' ? i : i.name)).join(', ')}${m.ingredients.length > 3 ? '…' : ''}</div>` : ''}
             </div>
-            <button class="meal-chip-edit-btn" data-edit="${m.id}" title="Rediger">✏</button>
             <span class="meal-chip-drag-handle" data-drag="${m.id}">⠿</span>
           </div>`).join('');
-
-        row.querySelectorAll('.meal-chip-edit-btn').forEach(btn => {
-          btn.addEventListener('click', e => {
-            e.stopPropagation();
-            openMealForm(btn.dataset.edit);
-          });
-          btn.addEventListener('touchend', e => {
-            e.stopPropagation();
-            e.preventDefault();
-            openMealForm(btn.dataset.edit);
-          });
-        });
 
         // Drag — only from the drag handle
         row.querySelectorAll('.meal-chip-drag-handle').forEach(handle => {
@@ -2050,7 +2044,7 @@
           const id = chip.dataset.id;
 
           chip.addEventListener('click', e => {
-            if (e.target.closest('.meal-chip-drag-handle') || e.target.closest('.meal-chip-edit-btn')) return;
+            if (e.target.closest('.meal-chip-drag-handle')) return;
             if (selectedDay) assignMealToDay(id);
           });
         });
@@ -2201,8 +2195,9 @@
 
       window.deleteMeal = async function() {
         if (!editingMealId) return;
+        const idToDelete = editingMealId;
         closeMealForm();
-        await deleteDoc(doc(db, 'meals', editingMealId));
+        await deleteDoc(doc(db, 'meals', idToDelete));
       };
 
       window.openDinnerSheet = function (date, label) {
@@ -2279,26 +2274,30 @@
         });
       }
 
+      function setShopSuggestionsVisible(visible) {
+        document.getElementById("shop-suggestions").style.display = visible ? "block" : "none";
+        document.getElementById("shop-suggestions-backdrop").style.display = visible ? "block" : "none";
+      }
+
       window.onShopInput = function () {
         const input = document.getElementById("shop-input");
         const text = input.value.trim().toLowerCase();
-        const dropdown = document.getElementById("shop-suggestions");
-        if (!text) { dropdown.style.display = "none"; return; }
+        if (!text) { setShopSuggestionsVisible(false); return; }
         const matches = quickPicks.filter(
           (qp) => qp.text.toLowerCase().includes(text) && !activeShopTexts.has(qp.text.toLowerCase())
         );
-        if (matches.length === 0) { dropdown.style.display = "none"; return; }
-        dropdown.style.display = "block";
-        dropdown.innerHTML = matches.slice(0, 8).map((qp) =>
+        if (matches.length === 0) { setShopSuggestionsVisible(false); return; }
+        document.getElementById("shop-suggestions").innerHTML = matches.slice(0, 8).map((qp) =>
           `<div class="shop-suggestion-item" onmousedown="selectSuggestion(event,'${qp.text.replace(/'/g, "\\'")}')">${escHtml(qp.text)}</div>`
         ).join("");
+        setShopSuggestionsVisible(true);
       };
 
       window.selectSuggestion = function (e, text) {
         e.preventDefault();
         const input = document.getElementById("shop-input");
         input.value = text;
-        document.getElementById("shop-suggestions").style.display = "none";
+        setShopSuggestionsVisible(false);
         const qp = quickPicks.find((q) => q.text.toLowerCase() === text.toLowerCase());
         if (qp && qp.category) {
           selectedCategory = qp.category;
@@ -2316,7 +2315,7 @@
 
       window.handleShopKeydown = function (e) {
         if (e.key === "Enter") { addShopItem(); }
-        if (e.key === "Escape") { document.getElementById("shop-suggestions").style.display = "none"; }
+        if (e.key === "Escape") { setShopSuggestionsVisible(false); }
       };
 
       let editingItemId = null;
@@ -2705,7 +2704,7 @@
         const qty = parseInt(qtyInput.value) || 1;
         input.value = "";
         qtyInput.value = "1";
-        document.getElementById("shop-suggestions").style.display = "none";
+        setShopSuggestionsVisible(false);
         input.focus();
         const { updateDoc: upd } =
           await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
